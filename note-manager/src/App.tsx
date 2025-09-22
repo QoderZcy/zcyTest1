@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, StickyNote } from 'lucide-react';
+import { Plus, StickyNote, User, LogOut, Settings } from 'lucide-react';
+import { AuthProvider } from './contexts/AuthContext';
+import { AuthGuard } from './components/AuthGuard';
 import { useNotes } from './hooks/useNotes';
+import { useAuth } from './contexts/AuthContext';
 import { NoteForm } from './components/NoteForm';
 import { SearchBar } from './components/SearchBar';
 import { NotesGrid } from './components/NotesGrid';
@@ -8,20 +11,26 @@ import { StatsPanel } from './components/StatsPanel';
 import type { Note } from './types/note';
 import './App.css';
 
-function App() {
+// 主应用组件（已认证用户）
+const MainApp: React.FC = () => {
+  const { user, logout } = useAuth();
   const {
     notes,
     allTags,
     filter,
     stats,
+    migrationStatus,
     setFilter,
     createNote,
     updateNote,
     deleteNote,
+    clearMigration,
+    retryMigration,
   } = useNotes();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleCreateNote = () => {
     setEditingNote(null);
@@ -48,6 +57,61 @@ function App() {
     setEditingNote(null);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  // 数据迁移提示
+  if (migrationStatus?.isInProgress) {
+    return (
+      <div className="migration-screen">
+        <div className="migration-container">
+          <div className="migration-content">
+            <StickyNote size={48} className="migration-icon" />
+            <h2>正在迁移您的便签数据</h2>
+            <p>请稍候，我们正在将您的本地便签迁移到个人账户...</p>
+            
+            <div className="migration-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill"
+                  style={{ 
+                    width: `${(migrationStatus.processedNotes / migrationStatus.totalNotes) * 100}%` 
+                  }}
+                />
+              </div>
+              <span className="progress-text">
+                {migrationStatus.processedNotes} / {migrationStatus.totalNotes} 便签已处理
+              </span>
+            </div>
+            
+            {migrationStatus.errors.length > 0 && (
+              <div className="migration-errors">
+                <h3>迁移错误：</h3>
+                <ul>
+                  {migrationStatus.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+                <button className="btn btn-outline" onClick={retryMigration}>
+                  重试迁移
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -57,13 +121,56 @@ function App() {
             <h1>便签管理系统</h1>
           </div>
           
-          <button
-            onClick={handleCreateNote}
-            className="btn btn-primary create-btn"
-          >
-            <Plus size={20} />
-            新建便签
-          </button>
+          <div className="header-actions">
+            <button
+              onClick={handleCreateNote}
+              className="btn btn-primary create-btn"
+            >
+              <Plus size={20} />
+              新建便签
+            </button>
+            
+            {/* 用户菜单 */}
+            <div className="user-menu-container">
+              <button 
+                className="user-menu-trigger"
+                onClick={toggleUserMenu}
+                aria-label="用户菜单"
+              >
+                <User size={20} />
+                <span className="user-name">{user?.username}</span>
+              </button>
+              
+              {showUserMenu && (
+                <div className="user-menu">
+                  <div className="user-menu-header">
+                    <div className="user-avatar">
+                      <User size={32} />
+                    </div>
+                    <div className="user-info">
+                      <div className="user-display-name">{user?.username}</div>
+                      <div className="user-email">{user?.email}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="user-menu-divider" />
+                  
+                  <button className="user-menu-item">
+                    <Settings size={16} />
+                    设置
+                  </button>
+                  
+                  <button 
+                    className="user-menu-item user-menu-logout"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={16} />
+                    登出
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -94,7 +201,26 @@ function App() {
         onSave={handleSaveNote}
         onCancel={handleCancelForm}
       />
+      
+      {/* 点击外部关闭用户菜单 */}
+      {showUserMenu && (
+        <div 
+          className="overlay"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </div>
+  );
+};
+
+// 根应用组件
+function App() {
+  return (
+    <AuthProvider>
+      <AuthGuard>
+        <MainApp />
+      </AuthGuard>
+    </AuthProvider>
   );
 }
 
