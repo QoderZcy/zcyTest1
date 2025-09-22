@@ -5,10 +5,14 @@ import { NoteForm } from './components/NoteForm';
 import { SearchBar } from './components/SearchBar';
 import { NotesGrid } from './components/NotesGrid';
 import { StatsPanel } from './components/StatsPanel';
+import { LoginForm } from './components/LoginForm';
+import { UserMenu } from './components/UserMenu';
+import { useAuth } from './contexts/AuthContext';
 import type { Note } from './types/note';
 import './App.css';
 
 function App() {
+  const { isAuthenticated, isLoading } = useAuth();
   const {
     notes,
     allTags,
@@ -48,6 +52,21 @@ function App() {
     setEditingNote(null);
   };
 
+  // 如果正在加载认证状态，显示加载界面
+  if (isLoading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner" />
+        <p>加载中...</p>
+      </div>
+    );
+  }
+
+  // 如果未登录，显示登录表单
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -57,13 +76,16 @@ function App() {
             <h1>便签管理系统</h1>
           </div>
           
-          <button
-            onClick={handleCreateNote}
-            className="btn btn-primary create-btn"
-          >
-            <Plus size={20} />
-            新建便签
-          </button>
+          <div className="header-actions">
+            <button
+              onClick={handleCreateNote}
+              className="btn btn-primary create-btn"
+            >
+              <Plus size={20} />
+              新建便签
+            </button>
+            <UserMenu />
+          </div>
         </div>
       </header>
 
