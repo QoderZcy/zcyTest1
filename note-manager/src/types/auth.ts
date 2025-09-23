@@ -18,12 +18,24 @@ export interface UserPreferences {
 }
 
 export interface AuthState {
+  // 认证状态
   isAuthenticated: boolean;
+  isInitialized: boolean;
+  
+  // 用户信息
   user: User | null;
+  
+  // 令牌管理
   token: string | null;
   refreshToken: string | null;
+  tokenExpiryTime: number | null;
+  
+  // UI状态
   loading: boolean;
-  error: string | null;
+  error: AuthError | null;
+  
+  // 配置选项
+  rememberMe: boolean;
 }
 
 export interface LoginCredentials {
@@ -92,10 +104,28 @@ export interface AuthError {
   details?: Record<string, any>;
 }
 
+// 认证模式类型
+export enum AuthMode {
+  LOGIN = 'login',
+  REGISTER = 'register',
+  FORGOT_PASSWORD = 'forgot-password',
+  RESET_PASSWORD = 'reset-password',
+}
+
+// 认证状态流转类型
+export enum AuthStateType {
+  IDLE = 'idle',
+  LOADING = 'loading',
+  AUTHENTICATING = 'authenticating',
+  AUTHENTICATED = 'authenticated',
+  ERROR = 'error',
+}
+
 // 存储策略
 export enum StorageType {
   SESSION = 'session',
   LOCAL = 'local',
+  MEMORY = 'memory',
 }
 
 // 认证配置
@@ -106,6 +136,21 @@ export interface AuthConfig {
   refreshThreshold: number; // 令牌过期前多少秒开始刷新
   maxRetries: number;
   baseURL: string;
+  rememberMeDuration: number; // 记住我持续时间（天）
+}
+
+// 用户会话信息
+export interface UserSession {
+  sessionId: string;
+  deviceInfo: {
+    userAgent: string;
+    ip: string;
+    location?: string;
+    deviceType: 'desktop' | 'mobile' | 'tablet';
+  };
+  createdAt: Date;
+  lastActivity: Date;
+  isActive: boolean;
 }
 
 // 认证上下文的操作类型
@@ -121,4 +166,9 @@ export interface AuthContextActions {
 }
 
 // 完整的认证上下文类型
-export interface AuthContextType extends AuthState, AuthContextActions {}
+export interface AuthContextType extends AuthState, AuthContextActions {
+  // 额外的认证上下文方法
+  checkTokenExpiration: () => Promise<void>;
+  initializeAuth: () => Promise<void>;
+  isTokenExpiringSoon: (thresholdSeconds?: number) => boolean;
+}

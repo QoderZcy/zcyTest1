@@ -15,53 +15,100 @@ import { JWTUtils, ErrorUtils } from '../utils/authUtils';
 
 // 认证状态初始值
 const initialAuthState: AuthState = {
+  // 认证状态
   isAuthenticated: false,
+  isInitialized: false,
+  
+  // 用户信息
   user: null,
+  
+  // 令牌管理
   token: null,
   refreshToken: null,
+  tokenExpiryTime: null,
+  
+  // UI状态
   loading: true,
   error: null,
+  
+  // 配置选项
+  rememberMe: false,
 };
 
 // 认证操作类型
 type AuthAction =
-  | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: { user: User; token: string; refreshToken: string } }
-  | { type: 'AUTH_FAILURE'; payload: { error: string } }
+  | { type: 'AUTH_INIT_START' }
+  | { type: 'AUTH_INIT_SUCCESS'; payload: { user: User; token: string; refreshToken: string; expiryTime: number } }
+  | { type: 'AUTH_INIT_COMPLETE' }
+  | { type: 'AUTH_LOGIN_START' }
+  | { type: 'AUTH_LOGIN_SUCCESS'; payload: { user: User; token: string; refreshToken: string; expiryTime: number; rememberMe: boolean } }
+  | { type: 'AUTH_LOGIN_FAILURE'; payload: { error: AuthError } }
   | { type: 'AUTH_LOGOUT' }
   | { type: 'AUTH_CLEAR_ERROR' }
   | { type: 'AUTH_UPDATE_USER'; payload: { user: Partial<User> } }
   | { type: 'AUTH_SET_LOADING'; payload: { loading: boolean } }
-  | { type: 'AUTH_TOKEN_REFRESH'; payload: { token: string } };
+  | { type: 'AUTH_TOKEN_REFRESH'; payload: { token: string; expiryTime: number } };
 
 // 认证状态减速器
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
-    case 'AUTH_START':
+    case 'AUTH_INIT_START':
+      return {
+        ...state,
+        loading: true,
+        error: null,
+        isInitialized: false,
+      };
+
+    case 'AUTH_INIT_SUCCESS':
+      return {
+        ...state,
+        isAuthenticated: true,
+        isInitialized: true,
+        user: action.payload.user,
+        token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
+        tokenExpiryTime: action.payload.expiryTime,
+        loading: false,
+        error: null,
+      };
+
+    case 'AUTH_INIT_COMPLETE':
+      return {
+        ...state,
+        isInitialized: true,
+        loading: false,
+      };
+
+    case 'AUTH_LOGIN_START':
       return {
         ...state,
         loading: true,
         error: null,
       };
 
-    case 'AUTH_SUCCESS':
+    case 'AUTH_LOGIN_SUCCESS':
       return {
         ...state,
         isAuthenticated: true,
+        isInitialized: true,
         user: action.payload.user,
         token: action.payload.token,
         refreshToken: action.payload.refreshToken,
+        tokenExpiryTime: action.payload.expiryTime,
+        rememberMe: action.payload.rememberMe,
         loading: false,
         error: null,
       };
 
-    case 'AUTH_FAILURE':
+    case 'AUTH_LOGIN_FAILURE':
       return {
         ...state,
         isAuthenticated: false,
         user: null,
         token: null,
         refreshToken: null,
+        tokenExpiryTime: null,
         loading: false,
         error: action.payload.error,
       };
@@ -69,6 +116,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
     case 'AUTH_LOGOUT':
       return {
         ...initialAuthState,
+        isInitialized: true,
         loading: false,
       };
 
@@ -94,6 +142,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return {
         ...state,
         token: action.payload.token,
+        tokenExpiryTime: action.payload.expiryTime,
       };
 
     default:
@@ -134,13 +183,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const initializeAuth = async (): Promise<void> => {
     try {
-      dispatch({ type: 'AUTH_SET_LOADING', payload: { loading: true } });
+      dispatch({ type: 'AUTH_INIT_START' });
 
       const token = StorageManager.getToken();
       const refreshToken = StorageManager.getRefreshToken();
+      const rememberMe = StorageManager.getRememberMe();
 
       if (!token || !refreshToken) {
-        dispatch({ type: 'AUTH_SET_LOADING', payload: { loading: false } });
+        dispatch({ type: 'AUTH_INIT_COMPLETE' });
         return;
       }
 
@@ -152,39 +202,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
           // 刷新失败，清除所有认证信息
           handleLogout();
+          return;
         }
       } else {
         // token有效，获取用户信息
         try {
           const user = await AuthService.getCurrentUser();
+          const decoded = JWTUtils.decode(token);
+          const expiryTime = decoded?.exp ? decoded.exp * 1000 : Date.now() + 3600000;
+          
           dispatch({
-            type: 'AUTH_SUCCESS',
-            payload: { user, token, refreshToken }
+            type: 'AUTH_INIT_SUCCESS',
+            payload: { user, token, refreshToken, expiryTime }
           });
+          
+          // 设置记住我状态
+          if (rememberMe) {
+            dispatch({ type: 'AUTH_SET_LOADING', payload: { loading: false } });
+            state.rememberMe = true;
+          }
         } catch (error) {
           // 获取用户信息失败，可能token无效
+          console.error('[AuthContext] 初始化时获取用户信息失败:', error);
           handleLogout();
         }
       }
     } catch (error) {
-      console.error('Initialize auth failed:', error);
+      console.error('[AuthContext] 初始化认证失败:', error);
       handleLogout();
     } finally {
-      dispatch({ type: 'AUTH_SET_LOADING', payload: { loading: false } });
+      dispatch({ type: 'AUTH_INIT_COMPLETE' });
     }
   };
 
   /**
    * 检查令牌是否即将过期
    */
+  const isTokenExpiringSoon = (thresholdSeconds: number = 300): boolean => {
+    if (!state.token) return true;
+    return JWTUtils.isTokenExpiringSoon(state.token, thresholdSeconds);
+  };
+
+  /**
+   * 检查令牌过期状态
+   */
   const checkTokenExpiration = async (): Promise<void> => {
-    if (!state.token) return;
+    if (!state.token || !state.isAuthenticated) return;
 
     if (JWTUtils.isTokenExpiringSoon(state.token, 300)) { // 5分钟内过期
       try {
         await refreshTokenInternal();
+        console.log('[AuthContext] 令牌自动刷新成功');
       } catch (error) {
-        console.error('Auto refresh token failed:', error);
+        console.error('[AuthContext] 自动刷新令牌失败:', error);
         handleLogout();
       }
     }
@@ -196,14 +266,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshTokenInternal = async (): Promise<void> => {
     const refreshToken = StorageManager.getRefreshToken();
     if (!refreshToken) {
-      throw new Error('No refresh token available');
+      throw new Error('没有可用的刷新令牌');
     }
 
     const response = await AuthService.refreshToken(refreshToken);
     const rememberMe = StorageManager.getRememberMe();
     
+    // 计算令牌过期时间
+    const decoded = JWTUtils.decode(response.token);
+    const expiryTime = decoded?.exp ? decoded.exp * 1000 : Date.now() + 3600000;
+    
     StorageManager.setToken(response.token, rememberMe);
-    dispatch({ type: 'AUTH_TOKEN_REFRESH', payload: { token: response.token } });
+    dispatch({ 
+      type: 'AUTH_TOKEN_REFRESH', 
+      payload: { 
+        token: response.token,
+        expiryTime 
+      } 
+    });
   };
 
   /**
@@ -211,25 +291,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
-      dispatch({ type: 'AUTH_START' });
+      dispatch({ type: 'AUTH_LOGIN_START' });
 
       const response = await AuthService.login(credentials);
-      const { user, token, refreshToken } = response;
+      const { user, token, refreshToken, expiresIn } = response;
 
+      // 计算令牌过期时间
+      const expiryTime = Date.now() + (expiresIn * 1000);
+      
       // 存储令牌
       StorageManager.setToken(token, credentials.rememberMe || false);
       StorageManager.setRefreshToken(refreshToken);
       StorageManager.setRememberMe(credentials.rememberMe || false);
 
       dispatch({
-        type: 'AUTH_SUCCESS',
-        payload: { user, token, refreshToken }
+        type: 'AUTH_LOGIN_SUCCESS',
+        payload: { 
+          user, 
+          token, 
+          refreshToken, 
+          expiryTime,
+          rememberMe: credentials.rememberMe || false
+        }
       });
+      
+      console.log('[AuthContext] 登录成功:', { userId: user.id, email: user.email });
     } catch (error) {
-      const errorMessage = ErrorUtils.getErrorMessage(error);
+      console.error('[AuthContext] 登录失败:', error);
+      const authError: AuthError = {
+        type: error.type || AuthErrorType.SERVER_ERROR,
+        message: ErrorUtils.getErrorMessage(error),
+        details: error.details
+      };
+      
       dispatch({
-        type: 'AUTH_FAILURE',
-        payload: { error: errorMessage }
+        type: 'AUTH_LOGIN_FAILURE',
+        payload: { error: authError }
       });
       throw error;
     }
@@ -348,6 +445,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     clearError,
     updateUser,
+    // 新增的方法
+    checkTokenExpiration,
+    initializeAuth,
+    isTokenExpiringSoon,
   };
 
   return (

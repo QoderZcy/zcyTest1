@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthPage, AuthMode } from './AuthPage';
+import { AuthPage } from './AuthPage';
+import { AuthMode } from '../types/auth';
 import { Loader2 } from 'lucide-react';
 
 // AuthGuard组件Props

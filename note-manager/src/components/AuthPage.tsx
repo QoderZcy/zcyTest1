@@ -1,35 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StickyNote, ArrowLeft } from 'lucide-react';
 import { LoginForm } from './LoginForm';
-import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
-
-// 认证页面模式
-export enum AuthMode {
-  LOGIN = 'login',
-  REGISTER = 'register',
-  FORGOT_PASSWORD = 'forgot-password',
-  RESET_PASSWORD = 'reset-password',
-}
+import { AuthMode } from '../types/auth';
 
 // 组件Props
 interface AuthPageProps {
   initialMode?: AuthMode;
   onModeChange?: (mode: AuthMode) => void;
+  onAuthSuccess?: () => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
   initialMode = AuthMode.LOGIN,
   onModeChange,
+  onAuthSuccess,
 }) => {
   const [currentMode, setCurrentMode] = useState<AuthMode>(initialMode);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   /**
    * 切换认证模式
    */
-  const switchMode = (mode: AuthMode): void => {
+  const switchMode = async (mode: AuthMode): Promise<void> => {
+    if (mode === currentMode) return;
+    
+    setIsTransitioning(true);
+    
+    // 模拟切换动画延迟
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
     setCurrentMode(mode);
     onModeChange?.(mode);
+    
+    // 动画结束
+    setTimeout(() => setIsTransitioning(false), 150);
   };
 
   /**
@@ -54,6 +59,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   /**
+   * 处理认证成功
+   */
+  const handleAuthSuccess = (): void => {
+    console.log('[AuthPage] 认证成功');
+    onAuthSuccess?.();
+  };
+
+  /**
    * 获取页面标题
    */
   const getPageTitle = (): string => {
@@ -75,6 +88,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
    * 渲染当前模式的表单
    */
   const renderCurrentForm = (): React.ReactNode => {
+    if (isTransitioning) {
+      return (
+        <div className="auth-form-loading">
+          <div className="loading-spinner"></div>
+        </div>
+      );
+    }
+
     switch (currentMode) {
       case AuthMode.LOGIN:
         return (
@@ -85,10 +106,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         );
       
       case AuthMode.REGISTER:
+        // TODO: 实现RegisterForm组件
         return (
-          <RegisterForm
-            onSwitchToLogin={switchToLogin}
-          />
+          <div className="auth-form-placeholder">
+            <h2>注册功能待实现</h2>
+            <button 
+              className="btn btn-secondary"
+              onClick={switchToLogin}
+            >
+              返回登录
+            </button>
+          </div>
         );
       
       case AuthMode.FORGOT_PASSWORD:
