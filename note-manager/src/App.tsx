@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, StickyNote, User, LogOut, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import { useNotes } from './hooks/useNotes';
@@ -13,7 +13,7 @@ import './App.css';
 
 // 主应用组件（已认证用户）
 const MainApp: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated, loading, checkTokenExpiration } = useAuth();
   const {
     notes,
     allTags,
@@ -31,6 +31,32 @@ const MainApp: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // 定期检查令牌状态
+  useEffect(() => {
+    if (isAuthenticated) {
+      const interval = setInterval(() => {
+        checkTokenExpiration();
+      }, 60000); // 每分钟检查一次
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, checkTokenExpiration]);
+
+  // 页面可见性变化时检查令牌
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isAuthenticated) {
+        checkTokenExpiration();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthenticated, checkTokenExpiration]);
 
   const handleCreateNote = () => {
     setEditingNote(null);
@@ -59,9 +85,17 @@ const MainApp: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
+      setShowUserMenu(false);
+      
+      console.log('[App] 开始登出流程');
       await logout();
+      console.log('[App] 登出成功');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('[App] 登出失败:', error);
+      // 即使登出失败，也要重置状态
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -163,9 +197,19 @@ const MainApp: React.FC = () => {
                   <button 
                     className="user-menu-item user-menu-logout"
                     onClick={handleLogout}
+                    disabled={isLoggingOut}
                   >
-                    <LogOut size={16} />
-                    登出
+                    {isLoggingOut ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        登出中...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut size={16} />
+                        登出
+                      </>
+                    )}
                   </button>
                 </div>
               )}

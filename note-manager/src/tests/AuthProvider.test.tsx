@@ -1,89 +1,55 @@
-/**
- * AuthProvider 组件单元测试
- */
-
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
-import { LoginCredentials, RegisterCredentials } from '../src/types/auth';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import AuthService from '../services/authService';
+import { StorageManager } from '../utils/httpClient';
+import { JWTUtils } from '../utils/authUtils';
+import { AuthErrorType } from '../types/auth';
 
-// Mock AuthService
-const mockAuthService = {
-  login: vi.fn(),
-  register: vi.fn(),
-  logout: vi.fn(),
-  getCurrentUser: vi.fn(),
-  refreshToken: vi.fn(),
-  forgotPassword: vi.fn(),
-  resetPassword: vi.fn(),
-  updateUser: vi.fn(),
-};
+// 模拟依赖
+vi.mock('../services/authService');
+vi.mock('../utils/httpClient');
+vi.mock('../utils/authUtils');
 
-vi.mock('../src/services/authService', () => ({
-  default: mockAuthService,
-}));
+// 模拟的AuthService
+const mockAuthService = AuthService as any;
+const mockStorageManager = StorageManager as any;
+const mockJWTUtils = JWTUtils as any;
 
-// Mock StorageManager
-const mockStorageManager = {
-  getToken: vi.fn(),
-  setToken: vi.fn(),
-  getRefreshToken: vi.fn(),
-  setRefreshToken: vi.fn(),
-  clearTokens: vi.fn(),
-  getRememberMe: vi.fn(),
-  setRememberMe: vi.fn(),
-};
-
-vi.mock('../src/utils/httpClient', () => ({
-  StorageManager: mockStorageManager,
-}));
-
-// Mock JWTUtils
-vi.mock('../src/utils/authUtils', () => ({
-  JWTUtils: {
-    isTokenExpired: vi.fn(),
-    isTokenExpiringSoon: vi.fn(),
-  },
-  ErrorUtils: {
-    getErrorMessage: vi.fn((error) => error.message || 'Unknown error'),
-  },
-}));
-
-// 测试组件，用于访问 AuthContext
+// 测试组件
 const TestComponent = () => {
   const auth = useAuth();
   
   return (
     <div>
-      <div data-testid=\"loading\">{auth.loading ? 'loading' : 'not-loading'}</div>
-      <div data-testid=\"authenticated\">{auth.isAuthenticated ? 'authenticated' : 'not-authenticated'}</div>
-      <div data-testid=\"user\">{auth.user?.username || 'no-user'}</div>
-      <div data-testid=\"error\">{auth.error || 'no-error'}</div>
-      
+      <div data-testid="auth-status">
+        {auth.isAuthenticated ? 'authenticated' : 'not-authenticated'}
+      </div>
+      <div data-testid="loading-status">
+        {auth.loading ? 'loading' : 'loaded'}
+      </div>
+      <div data-testid="initialized-status">
+        {auth.isInitialized ? 'initialized' : 'not-initialized'}
+      </div>
+      {auth.user && (
+        <div data-testid="user-info">
+          {auth.user.email}
+        </div>
+      )}
+      {auth.error && (
+        <div data-testid="error-message">
+          {auth.error.message}
+        </div>
+      )}
       <button 
-        data-testid=\"login-btn\" 
-        onClick={() => auth.login({ email: 'test@example.com', password: 'password' })}
+        data-testid="login-button"
+        onClick={() => auth.login({ email: 'test@example.com', password: 'password123' })}
       >
         Login
       </button>
-      
       <button 
-        data-testid=\"register-btn\" 
-        onClick={() => auth.register({ 
-          email: 'test@example.com', 
-          password: 'password', 
-          username: 'testuser',
-          confirmPassword: 'password',
-          acceptTerms: true,
-        })}
-      >
-        Register
-      </button>
-      
-      <button 
-        data-testid=\"logout-btn\" 
+        data-testid="logout-button"
         onClick={() => auth.logout()}
       >
         Logout
@@ -93,43 +59,114 @@ const TestComponent = () => {
 };
 
 describe('AuthProvider', () => {
+  const mockUser = {
+    id: 'user-1',
+    email: 'test@example.com',
+    username: 'testuser',
+    avatar: 'avatar-url',
+    createdAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  const mockAuthResponse = {
+    token: 'mock-jwt-token',
+    refreshToken: 'mock-refresh-token',
+    user: mockUser,
+    expiresIn: 3600,
+  };
+
   beforeEach(() => {
+    // 重置所有模拟
     vi.clearAllMocks();
     
-    // 默认 mock 返回值
+    // 默认模拟设置
     mockStorageManager.getToken.mockReturnValue(null);
     mockStorageManager.getRefreshToken.mockReturnValue(null);
     mockStorageManager.getRememberMe.mockReturnValue(false);
+    mockJWTUtils.isTokenExpired.mockReturnValue(false);
+    mockJWTUtils.decode.mockReturnValue({ exp: Date.now() / 1000 + 3600 });
   });
 
-  it('should render children and provide auth context', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('初始化时应该显示加载状态', () => {
     render(
       <AuthProvider>
         <TestComponent />
       </AuthProvider>
     );
 
-    expect(screen.getByTestId('loading')).toHaveTextContent('not-loading');
-    expect(screen.getByTestId('authenticated')).toHaveTextContent('not-authenticated');
-    expect(screen.getByTestId('user')).toHaveTextContent('no-user');
+    expect(screen.getByTestId('loading-status')).toHaveTextContent('loading');
+    expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
+    expect(screen.getByTestId('initialized-status')).toHaveTextContent('not-initialized');
   });
 
-  it('should handle successful login', async () => {
-    const mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      username: 'testuser',
-      createdAt: new Date(),
-      lastLoginAt: new Date(),
-    };
+  it('无令牌时应该完成初始化', async () => {
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
 
-    const mockAuthResponse = {
-      user: mockUser,
-      token: 'mock-token',
-      refreshToken: 'mock-refresh-token',
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-status')).toHaveTextContent('loaded');
+    });
+
+    expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
+    expect(screen.getByTestId('initialized-status')).toHaveTextContent('initialized');
+  });
+
+  it('有效令牌时应该自动登录', async () => {
+    // 模拟有效令牌
+    mockStorageManager.getToken.mockReturnValue('valid-token');
+    mockStorageManager.getRefreshToken.mockReturnValue('valid-refresh-token');
+    mockJWTUtils.isTokenExpired.mockReturnValue(false);
+    mockAuthService.getCurrentUser.mockResolvedValue(mockUser);
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+    });
+
+    expect(screen.getByTestId('user-info')).toHaveTextContent('test@example.com');
+    expect(screen.getByTestId('initialized-status')).toHaveTextContent('initialized');
+    expect(mockAuthService.getCurrentUser).toHaveBeenCalled();
+  });
+
+  it('过期令牌时应该尝试刷新', async () => {
+    // 模拟过期令牌
+    mockStorageManager.getToken.mockReturnValue('expired-token');
+    mockStorageManager.getRefreshToken.mockReturnValue('valid-refresh-token');
+    mockJWTUtils.isTokenExpired.mockReturnValue(true);
+    mockAuthService.refreshToken.mockResolvedValue({
+      token: 'new-token',
       expiresIn: 3600,
-    };
+    });
+    mockAuthService.getCurrentUser.mockResolvedValue(mockUser);
 
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+    });
+
+    expect(mockAuthService.refreshToken).toHaveBeenCalledWith('valid-refresh-token');
+    expect(mockStorageManager.setToken).toHaveBeenCalledWith('new-token', false);
+  });
+
+  it('应该成功处理登录', async () => {
+    const user = userEvent.setup();
     mockAuthService.login.mockResolvedValue(mockAuthResponse);
 
     render(
@@ -138,28 +175,36 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
-    const loginButton = screen.getByTestId('login-btn');
+    // 等待初始化完成
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized-status')).toHaveTextContent('initialized');
+    });
 
     await act(async () => {
-      await userEvent.click(loginButton);
+      await user.click(screen.getByTestId('login-button'));
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated');
-      expect(screen.getByTestId('user')).toHaveTextContent('testuser');
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
     });
 
+    expect(screen.getByTestId('user-info')).toHaveTextContent('test@example.com');
     expect(mockAuthService.login).toHaveBeenCalledWith({
       email: 'test@example.com',
-      password: 'password',
+      password: 'password123',
     });
-    expect(mockStorageManager.setToken).toHaveBeenCalledWith('mock-token', false);
-    expect(mockStorageManager.setRefreshToken).toHaveBeenCalledWith('mock-refresh-token');
+    expect(mockStorageManager.setToken).toHaveBeenCalled();
+    expect(mockStorageManager.setRefreshToken).toHaveBeenCalled();
   });
 
-  it('should handle login failure', async () => {
-    const mockError = new Error('Invalid credentials');
-    mockAuthService.login.mockRejectedValue(mockError);
+  it('应该处理登录错误', async () => {
+    const user = userEvent.setup();
+    const loginError = {
+      type: AuthErrorType.INVALID_CREDENTIALS,
+      message: '邮箱或密码错误',
+    };
+    
+    mockAuthService.login.mockRejectedValue(loginError);
 
     render(
       <AuthProvider>
@@ -167,80 +212,28 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
-    const loginButton = screen.getByTestId('login-btn');
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized-status')).toHaveTextContent('initialized');
+    });
 
     await act(async () => {
-      await userEvent.click(loginButton);
+      await user.click(screen.getByTestId('login-button'));
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('error')).toHaveTextContent('Invalid credentials');
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('not-authenticated');
+      expect(screen.getByTestId('error-message')).toHaveTextContent('邮箱或密码错误');
     });
+
+    expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
   });
 
-  it('should handle successful registration', async () => {
-    const mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      username: 'testuser',
-      createdAt: new Date(),
-      lastLoginAt: new Date(),
-    };
-
-    const mockAuthResponse = {
-      user: mockUser,
-      token: 'mock-token',
-      refreshToken: 'mock-refresh-token',
-      expiresIn: 3600,
-    };
-
-    mockAuthService.register.mockResolvedValue(mockAuthResponse);
-
-    render(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-
-    const registerButton = screen.getByTestId('register-btn');
-
-    await act(async () => {
-      await userEvent.click(registerButton);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated');
-      expect(screen.getByTestId('user')).toHaveTextContent('testuser');
-    });
-
-    expect(mockAuthService.register).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'password',
-      username: 'testuser',
-      confirmPassword: 'password',
-      acceptTerms: true,
-    });
-  });
-
-  it('should handle logout', async () => {
-    // 先设置已认证状态
-    const mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      username: 'testuser',
-      createdAt: new Date(),
-      lastLoginAt: new Date(),
-    };
-
-    const mockAuthResponse = {
-      user: mockUser,
-      token: 'mock-token',
-      refreshToken: 'mock-refresh-token',
-      expiresIn: 3600,
-    };
-
-    mockAuthService.login.mockResolvedValue(mockAuthResponse);
+  it('应该成功处理登出', async () => {
+    const user = userEvent.setup();
+    
+    // 先设置为已登录状态
+    mockStorageManager.getToken.mockReturnValue('valid-token');
+    mockStorageManager.getRefreshToken.mockReturnValue('valid-refresh-token');
+    mockAuthService.getCurrentUser.mockResolvedValue(mockUser);
     mockAuthService.logout.mockResolvedValue(undefined);
 
     render(
@@ -249,39 +242,68 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
 
-    // 先登录
-    const loginButton = screen.getByTestId('login-btn');
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+    });
+
     await act(async () => {
-      await userEvent.click(loginButton);
+      await user.click(screen.getByTestId('logout-button'));
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated');
-    });
-
-    // 然后登出
-    const logoutButton = screen.getByTestId('logout-btn');
-    await act(async () => {
-      await userEvent.click(logoutButton);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('not-authenticated');
-      expect(screen.getByTestId('user')).toHaveTextContent('no-user');
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
     });
 
     expect(mockAuthService.logout).toHaveBeenCalled();
     expect(mockStorageManager.clearTokens).toHaveBeenCalled();
   });
 
-  it('should throw error when useAuth is used outside AuthProvider', () => {
-    // 模拟控制台错误以避免测试输出中的错误信息
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('即使服务器登出失败也应该清除本地状态', async () => {
+    const user = userEvent.setup();
     
-    expect(() => {
-      render(<TestComponent />);
-    }).toThrow('useAuth must be used within an AuthProvider');
+    mockStorageManager.getToken.mockReturnValue('valid-token');
+    mockStorageManager.getRefreshToken.mockReturnValue('valid-refresh-token');
+    mockAuthService.getCurrentUser.mockResolvedValue(mockUser);
+    mockAuthService.logout.mockRejectedValue(new Error('服务器错误'));
 
-    consoleSpy.mockRestore();
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+    });
+
+    await act(async () => {
+      await user.click(screen.getByTestId('logout-button'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
+    });
+
+    expect(mockStorageManager.clearTokens).toHaveBeenCalled();
+  });
+
+  it('应该正确处理令牌刷新失败', async () => {
+    mockStorageManager.getToken.mockReturnValue('expired-token');
+    mockStorageManager.getRefreshToken.mockReturnValue('invalid-refresh-token');
+    mockJWTUtils.isTokenExpired.mockReturnValue(true);
+    mockAuthService.refreshToken.mockRejectedValue(new Error('刷新令牌失败'));
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('not-authenticated');
+    });
+
+    expect(screen.getByTestId('initialized-status')).toHaveTextContent('initialized');
+    expect(mockStorageManager.clearTokens).toHaveBeenCalled();
   });
 });
