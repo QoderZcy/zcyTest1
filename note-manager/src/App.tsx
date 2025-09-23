@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Plus, StickyNote, User, LogOut, Settings, Loader2, BookOpen } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import { useNotes } from './hooks/useNotes';
@@ -8,6 +9,7 @@ import { NoteForm } from './components/NoteForm';
 import { SearchBar } from './components/SearchBar';
 import { NotesGrid } from './components/NotesGrid';
 import { StatsPanel } from './components/StatsPanel';
+import BlogModule from './components/blog/BlogModule';
 import type { Note } from './types/note';
 import './App.css';
 
@@ -32,6 +34,7 @@ const MainApp: React.FC = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeTab, setActiveTab] = useState<'notes' | 'blog'>('notes');
 
   // 定期检查令牌状态
   useEffect(() => {
@@ -155,14 +158,34 @@ const MainApp: React.FC = () => {
             <h1>便签管理系统</h1>
           </div>
           
-          <div className="header-actions">
+          {/* 主导航标签 */}
+          <div className="main-navigation">
             <button
-              onClick={handleCreateNote}
-              className="btn btn-primary create-btn"
+              className={`nav-tab ${activeTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notes')}
             >
-              <Plus size={20} />
-              新建便签
+              <StickyNote size={20} />
+              便签管理
             </button>
+            <button
+              className={`nav-tab ${activeTab === 'blog' ? 'active' : ''}`}
+              onClick={() => setActiveTab('blog')}
+            >
+              <BookOpen size={20} />
+              博客中心
+            </button>
+          </div>
+          
+          <div className="header-actions">
+            {activeTab === 'notes' && (
+              <button
+                onClick={handleCreateNote}
+                className="btn btn-primary create-btn"
+              >
+                <Plus size={20} />
+                新建便签
+              </button>
+            )}
             
             {/* 用户菜单 */}
             <div className="user-menu-container">
@@ -220,22 +243,28 @@ const MainApp: React.FC = () => {
 
       <main className="main-content">
         <div className="content-wrapper">
-          <div className="top-section">
-            <StatsPanel stats={stats} />
-            <SearchBar
-              filter={filter}
-              onFilterChange={setFilter}
-              allTags={allTags}
-            />
-          </div>
-          
-          <div className="notes-section">
-            <NotesGrid
-              notes={notes}
-              onEditNote={handleEditNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
+          {activeTab === 'notes' ? (
+            <>
+              <div className="top-section">
+                <StatsPanel stats={stats} />
+                <SearchBar
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  allTags={allTags}
+                />
+              </div>
+              
+              <div className="notes-section">
+                <NotesGrid
+                  notes={notes}
+                  onEditNote={handleEditNote}
+                  onDeleteNote={deleteNote}
+                />
+              </div>
+            </>
+          ) : (
+            <BlogModule />
+          )}
         </div>
       </main>
 
