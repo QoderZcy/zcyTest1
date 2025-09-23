@@ -1,0 +1,222 @@
+/* 博客分页组件样式 */
+
+.blog-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding: 2rem 0;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 分页按钮基础样式 */
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  color: #2d3748;
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f7fafc;
+}
+
+.btn-text {
+  font-size: 0.875rem;
+}
+
+/* 页码列表 */
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 1rem;
+}
+
+.pagination-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid transparent;
+  background: white;
+  color: #4a5568;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.pagination-page:hover {
+  background: #f7fafc;
+  color: #2d3748;
+}
+
+.pagination-page.active {
+  background: #3182ce;
+  color: white;
+  border-color: #3182ce;
+}
+
+.pagination-page.active:hover {
+  background: #2c5aa0;
+  border-color: #2c5aa0;
+}
+
+/* 省略号 */
+.pagination-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #a0aec0;
+}
+
+/* 页码信息 */
+.pagination-info {
+  font-size: 0.875rem;
+  color: #718096;
+  text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  .pagination-pages {
+    margin: 0 0.5rem;
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .prev-btn,
+  .next-btn {
+    flex: 1;
+    max-width: 120px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .blog-pagination {
+    margin-top: 2rem;
+    padding: 1rem 0;
+  }
+
+  .pagination-container {
+    gap: 0.25rem;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem;
+    min-width: 2.5rem;
+  }
+
+  .pagination-pages {
+    gap: 0.125rem;
+    margin: 0 0.25rem;
+  }
+
+  .pagination-page {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.875rem;
+  }
+
+  .pagination-ellipsis {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .prev-btn,
+  .next-btn {
+    max-width: 100px;
+  }
+}
+
+/* 无障碍支持 */
+.pagination-page:focus,
+.pagination-btn:focus {
+  outline: 2px solid #3182ce;
+  outline-offset: 2px;
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .pagination-btn {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .pagination-btn:hover:not(.disabled) {
+    background: #4a5568;
+    border-color: #718096;
+    color: #f7fafc;
+  }
+
+  .pagination-btn.disabled {
+    background: #1a202c;
+    color: #718096;
+  }
+
+  .pagination-page {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  .pagination-page:hover {
+    background: #4a5568;
+    color: #f7fafc;
+  }
+
+  .pagination-page.active {
+    background: #3182ce;
+    color: white;
+  }
+
+  .pagination-ellipsis {
+    color: #718096;
+  }
+
+  .pagination-info {
+    color: #a0aec0;
+  }
+}
