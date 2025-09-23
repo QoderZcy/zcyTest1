@@ -10,6 +10,7 @@ import { NotesGrid } from './components/NotesGrid';
 import { StatsPanel } from './components/StatsPanel';
 import type { Note } from './types/note';
 import './App.css';
+import './styles/auth.css';
 
 // 主应用组件（已认证用户）
 const MainApp: React.FC = () => {
