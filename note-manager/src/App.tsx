@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Plus, StickyNote, User, LogOut, Settings, Loader2, FileText, BookOpen } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import { useNotes } from './hooks/useNotes';
@@ -8,11 +9,17 @@ import { NoteForm } from './components/NoteForm';
 import { SearchBar } from './components/SearchBar';
 import { NotesGrid } from './components/NotesGrid';
 import { StatsPanel } from './components/StatsPanel';
+import BlogRoutes from './routes/BlogRoutes';
 import type { Note } from './types/note';
 import './App.css';
+import './styles/blog.css';
+import './styles/blog-detail.css';
+import './styles/blog-editor.css';
+import './styles/markdown.css';
 
 // 主应用组件（已认证用户）
 const MainApp: React.FC = () => {
+  const location = useLocation();
   const { user, logout, isAuthenticated, loading, checkTokenExpiration } = useAuth();
   const {
     notes,
@@ -32,6 +39,9 @@ const MainApp: React.FC = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // 判断当前是否在博客页面
+  const isBlogPage = location.pathname.startsWith('/blog');
 
   // 定期检查令牌状态
   useEffect(() => {
@@ -155,14 +165,35 @@ const MainApp: React.FC = () => {
             <h1>便签管理系统</h1>
           </div>
           
-          <div className="header-actions">
-            <button
-              onClick={handleCreateNote}
-              className="btn btn-primary create-btn"
+          {/* 主导航 */}
+          <nav className="main-navigation">
+            <Link 
+              to="/" 
+              className={`nav-link ${!isBlogPage ? 'active' : ''}`}
             >
-              <Plus size={20} />
-              新建便签
-            </button>
+              <FileText size={20} />
+              <span>便签管理</span>
+            </Link>
+            
+            <Link 
+              to="/blog" 
+              className={`nav-link ${isBlogPage ? 'active' : ''}`}
+            >
+              <BookOpen size={20} />
+              <span>博客中心</span>
+            </Link>
+          </nav>
+          
+          <div className="header-actions">
+            {!isBlogPage && (
+              <button
+                onClick={handleCreateNote}
+                className="btn btn-primary create-btn"
+              >
+                <Plus size={20} />
+                新建便签
+              </button>
+            )}
             
             {/* 用户菜单 */}
             <div className="user-menu-container">
@@ -219,24 +250,35 @@ const MainApp: React.FC = () => {
       </header>
 
       <main className="main-content">
-        <div className="content-wrapper">
-          <div className="top-section">
-            <StatsPanel stats={stats} />
-            <SearchBar
-              filter={filter}
-              onFilterChange={setFilter}
-              allTags={allTags}
-            />
-          </div>
+        <Routes>
+          {/* 便签管理页面 */}
+          <Route 
+            path="/" 
+            element={
+              <div className="content-wrapper">
+                <div className="top-section">
+                  <StatsPanel stats={stats} />
+                  <SearchBar
+                    filter={filter}
+                    onFilterChange={setFilter}
+                    allTags={allTags}
+                  />
+                </div>
+                
+                <div className="notes-section">
+                  <NotesGrid
+                    notes={notes}
+                    onEditNote={handleEditNote}
+                    onDeleteNote={deleteNote}
+                  />
+                </div>
+              </div>
+            } 
+          />
           
-          <div className="notes-section">
-            <NotesGrid
-              notes={notes}
-              onEditNote={handleEditNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
-        </div>
+          {/* 博客相关路由 */}
+          <Route path="/blog/*" element={<BlogRoutes />} />
+        </Routes>
       </main>
 
       <NoteForm
@@ -261,9 +303,11 @@ const MainApp: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AuthGuard>
-        <MainApp />
-      </AuthGuard>
+      <Router>
+        <AuthGuard>
+          <MainApp />
+        </AuthGuard>
+      </Router>
     </AuthProvider>
   );
 }
