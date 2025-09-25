@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StickyNote, ArrowLeft } from 'lucide-react';
 import { LoginForm } from './LoginForm';
+import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { AuthMode } from '../types/auth';
 
@@ -106,17 +107,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         );
       
       case AuthMode.REGISTER:
-        // TODO: 实现RegisterForm组件
         return (
-          <div className="auth-form-placeholder">
-            <h2>注册功能待实现</h2>
-            <button 
-              className="btn btn-secondary"
-              onClick={switchToLogin}
-            >
-              返回登录
-            </button>
-          </div>
+          <RegisterForm
+            onSwitchToLogin={switchToLogin}
+            onRegistrationSuccess={handleAuthSuccess}
+          />
         );
       
       case AuthMode.FORGOT_PASSWORD:

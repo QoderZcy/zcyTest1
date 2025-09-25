@@ -80,6 +80,7 @@ class HttpClient {
     resolve: (value?: any) => void;
     reject: (error?: any) => void;
   }> = [];
+  private retryCount = 0;
 
   constructor() {
     this.instance = axios.create({
@@ -191,12 +192,24 @@ class HttpClient {
   }
 
   private handleApiError(error: any): ApiError {
+    // 超时错误
     if (error.code === 'ECONNABORTED') {
       return new ApiError(AuthErrorType.NETWORK_ERROR, '请求超时，请检查网络连接');
     }
 
-    if (!error.response) {
+    // 网络连接错误
+    if (error.code === 'ERR_NETWORK' || !error.response) {
       return new ApiError(AuthErrorType.NETWORK_ERROR, '网络连接失败，请检查网络连接');
+    }
+
+    // DNS解析错误
+    if (error.code === 'ENOTFOUND') {
+      return new ApiError(AuthErrorType.NETWORK_ERROR, '无法连接到服务器，请检查网络设置');
+    }
+
+    // 连接被拒绝
+    if (error.code === 'ECONNREFUSED') {
+      return new ApiError(AuthErrorType.SERVER_ERROR, '服务器连接被拒绝，请稍后重试');
     }
 
     const { status, data } = error.response;
@@ -205,8 +218,14 @@ class HttpClient {
 
     switch (status) {
       case 400:
+        if (data?.code === 'INVALID_CREDENTIALS') {
+          return new ApiError(AuthErrorType.INVALID_CREDENTIALS, '邮箱或密码错误', status, details);
+        }
         return new ApiError(AuthErrorType.VALIDATION_ERROR, message, status, details);
       case 401:
+        if (data?.code === 'TOKEN_EXPIRED') {
+          return new ApiError(AuthErrorType.TOKEN_EXPIRED, '登录已过期，请重新登录', status);
+        }
         return new ApiError(AuthErrorType.TOKEN_INVALID, '认证失败，请重新登录', status);
       case 403:
         return new ApiError(AuthErrorType.ACCOUNT_LOCKED, '账户被锁定，请联系管理员', status);
@@ -216,9 +235,15 @@ class HttpClient {
         return new ApiError(AuthErrorType.EMAIL_ALREADY_EXISTS, '邮箱已被注册', status);
       case 422:
         return new ApiError(AuthErrorType.WEAK_PASSWORD, '密码强度不足', status, details);
+      case 429:
+        return new ApiError(AuthErrorType.SERVER_ERROR, '请求过于频繁，请稍后重试', status);
       case 500:
+      case 502:
+      case 503:
+      case 504:
+        return new ApiError(AuthErrorType.SERVER_ERROR, '服务器内部错误，请稍后重试', status);
       default:
-        return new ApiError(AuthErrorType.SERVER_ERROR, '服务器内部错误', status);
+        return new ApiError(AuthErrorType.SERVER_ERROR, `未知错误 (${status}): ${message}`, status);
     }
   }
 
@@ -228,19 +253,69 @@ class HttpClient {
 
   // 公共请求方法
   public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.instance.get<T>(url, config);
+    return this.retryRequest(() => this.instance.get<T>(url, config));
   }
 
   public async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.instance.post<T>(url, data, config);
+    return this.retryRequest(() => this.instance.post<T>(url, data, config));
   }
 
   public async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.instance.put<T>(url, data, config);
+    return this.retryRequest(() => this.instance.put<T>(url, data, config));
   }
 
   public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-    return this.instance.delete<T>(url, config);
+    return this.retryRequest(() => this.instance.delete<T>(url, config));
+  }
+
+  /**
+   * 重试请求机制
+   */
+  private async retryRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+    let attempt = 0;
+    
+    while (attempt < API_CONFIG.retryAttempts) {
+      try {
+        return await requestFn();
+      } catch (error: any) {
+        attempt++;
+        
+        // 不需要重试的情况
+        if (
+          attempt >= API_CONFIG.retryAttempts ||
+          error.response?.status < 500 ||
+          error.response?.status === 401
+        ) {
+          throw error;
+        }
+        
+        // 等待一定时间后重试
+        await this.sleep(API_CONFIG.retryDelay * attempt);
+        console.log(`[API Retry] Attempt ${attempt}/${API_CONFIG.retryAttempts}`);
+      }
+    }
+    
+    throw new Error('最大重试次数已达到');
+  }
+
+  /**
+   * 等待指定时间
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 检查网络连接状态
+   */
+  public async checkNetworkStatus(): Promise<boolean> {
+    try {
+      await this.instance.get('/health', { timeout: 5000 });
+      return true;
+    } catch (error) {
+      console.error('[Network Check] 网络连接检查失败:', error);
+      return false;
+    }
   }
 }
 
