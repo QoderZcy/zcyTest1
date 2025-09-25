@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JWTUtils, ValidationUtils, EncryptionUtils } from '../src/utils/authUtils';
+import { JWTUtils, ValidationUtils, EncryptionUtils } from '../utils/authUtils';
 
 describe('JWTUtils', () => {
   const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MjQyNjIyfQ.dummy_signature';
