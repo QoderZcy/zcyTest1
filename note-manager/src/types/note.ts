@@ -1,5 +1,7 @@
 // 便签相关的 TypeScript 类型定义
 
+import type { WeatherMetadata } from './weather';
+
 // 同步状态枚举
 export enum SyncStatus {
   LOCAL_ONLY = 'LOCAL_ONLY',   // 仅存在于本地
@@ -23,6 +25,10 @@ export interface Note {
   version?: number;            // 版本号，用于冲突解决
   lastSyncAt?: Date;          // 最后同步时间
   isDeleted?: boolean;        // 软删除标记
+  // 天气集成字段
+  weather?: WeatherMetadata;   // 天气信息
+  weatherTags?: string[];      // 天气相关标签
+  isWeatherTagged?: boolean;   // 是否包含天气信息
 }
 
 export interface NewNote {
