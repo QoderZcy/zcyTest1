@@ -9,6 +9,7 @@ import {
   AuthError,
   AuthErrorType 
 } from '../types/auth';
+import { errorHandler } from '../services/errorHandler';
 
 // API配置
 const API_CONFIG = {
@@ -166,7 +167,10 @@ class HttpClient {
             // 刷新令牌失败，清除所有令牌并重定向到登录
             this.processQueue(refreshError);
             StorageManager.clearTokens();
-            window.location.href = '/login';
+            
+            // 通知应用令牌过期
+            window.dispatchEvent(new CustomEvent('token-expired'));
+            
             return Promise.reject(refreshError);
           } finally {
             this.isRefreshing = false;
@@ -191,6 +195,9 @@ class HttpClient {
   }
 
   private handleApiError(error: any): ApiError {
+    // 使用全局错误处理器
+    const appError = errorHandler.handleError(error, { action: 'api_request' });
+    
     if (error.code === 'ECONNABORTED') {
       return new ApiError(AuthErrorType.NETWORK_ERROR, '请求超时，请检查网络连接');
     }
