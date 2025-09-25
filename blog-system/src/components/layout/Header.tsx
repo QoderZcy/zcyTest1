@@ -61,6 +61,12 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
               分类
             </Link>
             <Link 
+              to="/time" 
+              className="text-secondary-600 hover:text-primary-600 transition-colors duration-200"
+            >
+              时间工具
+            </Link>
+            <Link 
               to="/about" 
               className="text-secondary-600 hover:text-primary-600 transition-colors duration-200"
             >
@@ -287,6 +293,13 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   分类
+                </Link>
+                <Link
+                  to="/time"
+                  className="text-secondary-600 hover:text-primary-600 transition-colors duration-200 py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  时间工具
                 </Link>
                 <Link
                   to="/about"

@@ -10,6 +10,7 @@ const ArticlePage = React.lazy(() => import('../pages/article'));
 const WritePage = React.lazy(() => import('../pages/write'));
 const ProfilePage = React.lazy(() => import('../pages/profile'));
 const SearchPage = React.lazy(() => import('../pages/search'));
+const TimeUtilPage = React.lazy(() => import('../pages/TimeUtilPage'));
 
 // Loading component
 const LoadingFallback: React.FC = () => (
@@ -117,6 +118,7 @@ const AppRoutes: React.FC = () => {
         />
 
         {/* Static Pages */}
+        <Route path="/time" element={<TimeUtilPage />} />
         <Route path="/about" element={<div>关于我们页面</div>} />
         <Route path="/contact" element={<div>联系我们页面</div>} />
         <Route path="/help" element={<div>帮助页面</div>} />
