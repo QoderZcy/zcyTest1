@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>踩雷游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>踩雷游戏</h1>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <span>剩余雷数: <span id="mines-count">10</span></span>
+            </div>
+            <div class="info-item">
+                <span>时间: <span id="timer">000</span></span>
+            </div>
+            <div class="info-item">
+                <button id="reset-btn">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" data-difficulty="easy">简单 (9x9, 10雷)</button>
+            <button class="difficulty-btn" data-difficulty="medium">中等 (16x16, 40雷)</button>
+            <button class="difficulty-btn" data-difficulty="hard">困难 (16x30, 99雷)</button>
+        </div>
+        
+        <div class="game-status" id="game-status">点击开始游戏</div>
+        
+        <div class="game-board" id="game-board">
+            <!-- 游戏网格将通过JavaScript动态生成 -->
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
