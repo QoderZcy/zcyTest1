@@ -7,8 +7,11 @@ import {
   RegisterCredentials,
   ResetPasswordRequest,
   AuthError,
-  AuthErrorType
+  AuthErrorType,
+  PERMISSIONS,
+  Permission
 } from '../types/auth';
+import { UserRole } from '../types/library';
 import AuthService from '../services/authService';
 import { StorageManager } from '../utils/httpClient';
 import { JWTUtils, ErrorUtils } from '../utils/authUtils';
@@ -420,6 +423,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
+   * Check if user has specific permission
+   */
+  const hasPermission = (permission: Permission): boolean => {
+    if (!state.user) return false;
+    return state.user.permissions?.includes(permission) || false;
+  };
+
+  /**
+   * Check if user has specific role
+   */
+  const hasRole = (role: UserRole): boolean => {
+    if (!state.user) return false;
+    return state.user.role === role;
+  };
+
+  /**
+   * Check if user can access specific library
+   */
+  const canAccessLibrary = (libraryId: string): boolean => {
+    if (!state.user) return false;
+    // Admin can access all libraries
+    if (state.user.role === UserRole.ADMIN) return true;
+    // Others can only access their assigned library
+    return state.user.libraryId === libraryId;
+  };
+
+  /**
+   * Get user's role-based permissions
+   */
+  const getRolePermissions = (role: UserRole): Permission[] => {
+    switch (role) {
+      case UserRole.ADMIN:
+        return Object.values(PERMISSIONS) as Permission[];
+      case UserRole.SENIOR_LIBRARIAN:
+        return [
+          PERMISSIONS.BOOKS_READ, PERMISSIONS.BOOKS_CREATE, PERMISSIONS.BOOKS_UPDATE, PERMISSIONS.BOOKS_DELETE,
+          PERMISSIONS.MEMBERS_READ, PERMISSIONS.MEMBERS_CREATE, PERMISSIONS.MEMBERS_UPDATE, PERMISSIONS.MEMBERS_DELETE,
+          PERMISSIONS.LENDING_CHECKOUT, PERMISSIONS.LENDING_RETURN, PERMISSIONS.LENDING_RENEW, PERMISSIONS.LENDING_OVERRIDE,
+          PERMISSIONS.FINES_READ, PERMISSIONS.FINES_WAIVE, PERMISSIONS.FINES_PROCESS,
+          PERMISSIONS.REPORTS_READ, PERMISSIONS.REPORTS_EXPORT,
+          PERMISSIONS.USER_MANAGEMENT
+        ];
+      case UserRole.LIBRARIAN:
+        return [
+          PERMISSIONS.BOOKS_READ, PERMISSIONS.BOOKS_CREATE, PERMISSIONS.BOOKS_UPDATE,
+          PERMISSIONS.MEMBERS_READ, PERMISSIONS.MEMBERS_CREATE, PERMISSIONS.MEMBERS_UPDATE,
+          PERMISSIONS.LENDING_CHECKOUT, PERMISSIONS.LENDING_RETURN, PERMISSIONS.LENDING_RENEW,
+          PERMISSIONS.FINES_READ, PERMISSIONS.FINES_PROCESS,
+          PERMISSIONS.REPORTS_READ
+        ];
+      case UserRole.MEMBER:
+        return [
+          PERMISSIONS.BOOKS_READ
+        ];
+      default:
+        return [];
+    }
+  };
+
+  /**
    * 更新用户信息
    */
   const updateUser = async (updates: Partial<User>): Promise<void> => {
@@ -445,6 +508,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     clearError,
     updateUser,
+    // Library-specific methods
+    hasPermission,
+    hasRole,
+    canAccessLibrary,
     // 新增的方法
     checkTokenExpiration,
     initializeAuth,
