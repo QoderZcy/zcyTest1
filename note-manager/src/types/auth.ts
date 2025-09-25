@@ -1,5 +1,7 @@
 // 认证相关的 TypeScript 类型定义
 
+import { UserRole } from './library';
+
 export interface User {
   id: string;
   email: string;
@@ -8,6 +10,11 @@ export interface User {
   createdAt: Date;
   lastLoginAt: Date;
   preferences?: UserPreferences;
+  // Library-specific fields
+  role: UserRole;
+  libraryId?: string;
+  memberId?: string; // Link to Member entity for library members
+  permissions: string[];
 }
 
 export interface UserPreferences {
@@ -15,6 +22,14 @@ export interface UserPreferences {
   language: 'zh-CN' | 'en-US';
   autoSave: boolean;
   defaultNoteColor: string;
+  // Library-specific preferences
+  libraryViewMode: 'grid' | 'list' | 'table';
+  notificationPreferences: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+    reminderDays: number;
+  };
 }
 
 export interface AuthState {
@@ -50,6 +65,10 @@ export interface RegisterCredentials {
   username: string;
   confirmPassword: string;
   acceptTerms: boolean;
+  // Library-specific registration fields
+  role?: UserRole;
+  libraryId?: string;
+  membershipType?: string;
 }
 
 export interface AuthResponse {
@@ -79,6 +98,9 @@ export interface JWTPayload {
   sub: string; // 用户 ID
   email: string;
   username: string;
+  role: UserRole;
+  libraryId?: string;
+  permissions: string[];
   iat: number; // 签发时间
   exp: number; // 过期时间
 }
@@ -171,4 +193,45 @@ export interface AuthContextType extends AuthState, AuthContextActions {
   checkTokenExpiration: () => Promise<void>;
   initializeAuth: () => Promise<void>;
   isTokenExpiringSoon: (thresholdSeconds?: number) => boolean;
+  // Library-specific methods
+  hasPermission: (permission: string) => boolean;
+  hasRole: (role: UserRole) => boolean;
+  canAccessLibrary: (libraryId: string) => boolean;
 }
+
+// Library Permission Constants
+export const PERMISSIONS = {
+  // Book Management
+  BOOKS_READ: 'books:read',
+  BOOKS_CREATE: 'books:create',
+  BOOKS_UPDATE: 'books:update',
+  BOOKS_DELETE: 'books:delete',
+  
+  // Member Management
+  MEMBERS_READ: 'members:read',
+  MEMBERS_CREATE: 'members:create',
+  MEMBERS_UPDATE: 'members:update',
+  MEMBERS_DELETE: 'members:delete',
+  
+  // Lending Operations
+  LENDING_CHECKOUT: 'lending:checkout',
+  LENDING_RETURN: 'lending:return',
+  LENDING_RENEW: 'lending:renew',
+  LENDING_OVERRIDE: 'lending:override',
+  
+  // Fine Management
+  FINES_READ: 'fines:read',
+  FINES_WAIVE: 'fines:waive',
+  FINES_PROCESS: 'fines:process',
+  
+  // Reports and Analytics
+  REPORTS_READ: 'reports:read',
+  REPORTS_EXPORT: 'reports:export',
+  
+  // System Administration
+  SYSTEM_CONFIG: 'system:config',
+  USER_MANAGEMENT: 'users:manage',
+  LIBRARY_MANAGEMENT: 'libraries:manage'
+} as const;
+
+export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
