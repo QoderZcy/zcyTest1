@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 前端应用
+  blog-frontend:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    depends_on:
+      - blog-backend
+    networks:
+      - blog-network
+
+  # 后端API（示例）
+  blog-backend:
+    image: node:18-alpine
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mongodb://blog-db:27017/blog
+    restart: unless-stopped
+    depends_on:
+      - blog-db
+    networks:
+      - blog-network
+    # 这里需要实际的后端代码
+    # volumes:
+    #   - ./backend:/app
+    # command: ["npm", "start"]
+
+  # 数据库（示例）
+  blog-db:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=blog
+    volumes:
+      - blog_data:/data/db
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+  # Redis缓存（可选）
+  blog-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - blog-network
+
+volumes:
+  blog_data:
+
+networks:
+  blog-network:
+    driver: bridge

@@ -1,0 +1,20 @@
+.App {
+  text-align: left;
+}
+
+/* 响应式布局样式 */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: block;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu {
+    display: none;
+  }
+}
