@@ -47,7 +47,8 @@ type AuthAction =
   | { type: 'AUTH_CLEAR_ERROR' }
   | { type: 'AUTH_UPDATE_USER'; payload: { user: Partial<User> } }
   | { type: 'AUTH_SET_LOADING'; payload: { loading: boolean } }
-  | { type: 'AUTH_TOKEN_REFRESH'; payload: { token: string; expiryTime: number } };
+  | { type: 'AUTH_TOKEN_REFRESH'; payload: { token: string; expiryTime: number } }
+  | { type: 'AUTH_SET_REMEMBER_ME'; payload: { rememberMe: boolean } };
 
 // 认证状态减速器
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -145,6 +146,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         tokenExpiryTime: action.payload.expiryTime,
       };
 
+    case 'AUTH_SET_REMEMBER_ME':
+      return {
+        ...state,
+        rememberMe: action.payload.rememberMe,
+      };
+
     default:
       return state;
   }
@@ -218,8 +225,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // 设置记住我状态
           if (rememberMe) {
-            dispatch({ type: 'AUTH_SET_LOADING', payload: { loading: false } });
-            state.rememberMe = true;
+            // rememberMe 状态已经在 initialAuthState 中设置，不需要直接修改 state
+            console.log('[AuthContext] 记住我选项已启用');
           }
         } catch (error) {
           // 获取用户信息失败，可能token无效
@@ -337,10 +344,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const register = async (credentials: RegisterCredentials): Promise<void> => {
     try {
-      dispatch({ type: 'AUTH_START' });
+      dispatch({ type: 'AUTH_LOGIN_START' });
 
       const response = await AuthService.register(credentials);
-      const { user, token, refreshToken } = response;
+      const { user, token, refreshToken, expiresIn } = response;
+
+      // 计算令牌过期时间
+      const expiryTime = Date.now() + (expiresIn * 1000);
 
       // 存储令牌
       StorageManager.setToken(token, false); // 注册后默认不记住
@@ -348,14 +358,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       StorageManager.setRememberMe(false);
 
       dispatch({
-        type: 'AUTH_SUCCESS',
-        payload: { user, token, refreshToken }
+        type: 'AUTH_LOGIN_SUCCESS',
+        payload: { 
+          user, 
+          token, 
+          refreshToken, 
+          expiryTime,
+          rememberMe: false
+        }
       });
     } catch (error) {
-      const errorMessage = ErrorUtils.getErrorMessage(error);
+      console.error('[AuthContext] 注册失败:', error);
+      const authError: AuthError = {
+        type: error.type || AuthErrorType.SERVER_ERROR,
+        message: ErrorUtils.getErrorMessage(error),
+        details: error.details
+      };
+      
       dispatch({
-        type: 'AUTH_FAILURE',
-        payload: { error: errorMessage }
+        type: 'AUTH_LOGIN_FAILURE',
+        payload: { error: authError }
       });
       throw error;
     }

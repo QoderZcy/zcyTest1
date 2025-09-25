@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AuthProvider } from '../src/contexts/AuthContext';
-import { LoginForm } from '../src/components/LoginForm';
+import { AuthProvider } from '../contexts/AuthContext';
+import { LoginForm } from '../components/LoginForm';
 
 // Mock AuthContext
 const mockUseAuth = {
@@ -16,13 +16,13 @@ const mockUseAuth = {
   clearError: vi.fn(),
 };
 
-vi.mock('../src/contexts/AuthContext', () => ({
+vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth,
   AuthProvider: ({ children }: any) => children,
 }));
 
 // Mock validation utils
-vi.mock('../src/utils/authUtils', () => ({
+vi.mock('../utils/authUtils', () => ({
   ValidationUtils: {
     isValidEmail: (email: string) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email),
   },
