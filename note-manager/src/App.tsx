@@ -1,263 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
-import { useNotes } from './hooks/useNotes';
+import { LibraryLayout } from './components/LibraryLayout';
+import { LibraryDashboard } from './components/LibraryDashboard';
+import { BookCatalog } from './components/BookCatalog';
+import { BookDetails } from './components/BookDetails';
+import { MemberManagement } from './components/MemberManagement';
+import { CheckoutInterface } from './components/CheckoutInterface';
+import { ReturnInterface } from './components/ReturnInterface';
+import { RenewalInterface } from './components/RenewalInterface';
 import { useAuth } from './contexts/AuthContext';
-import { NoteForm } from './components/NoteForm';
-import { SearchBar } from './components/SearchBar';
-import { NotesGrid } from './components/NotesGrid';
-import { StatsPanel } from './components/StatsPanel';
-import type { Note } from './types/note';
+import { Book, Member } from './types/library';
+import { UserRole } from './types/library';
 import './App.css';
 
-// 主应用组件（已认证用户）
+// Main Library Management Application Component
 const MainApp: React.FC = () => {
-  const { user, logout, isAuthenticated, loading, checkTokenExpiration } = useAuth();
-  const {
-    notes,
-    allTags,
-    filter,
-    stats,
-    migrationStatus,
-    setFilter,
-    createNote,
-    updateNote,
-    deleteNote,
-    clearMigration,
-    retryMigration,
-  } = useNotes();
-  
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, hasRole } = useAuth();
+  const [currentSection, setCurrentSection] = useState('dashboard');
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [showBookDetails, setShowBookDetails] = useState(false);
+  const [showMemberDetails, setShowMemberDetails] = useState(false);
 
-  // 定期检查令牌状态
-  useEffect(() => {
-    if (isAuthenticated) {
-      const interval = setInterval(() => {
-        checkTokenExpiration();
-      }, 60000); // 每分钟检查一次
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, checkTokenExpiration]);
-
-  // 页面可见性变化时检查令牌
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isAuthenticated) {
-        checkTokenExpiration();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isAuthenticated, checkTokenExpiration]);
-
-  const handleCreateNote = () => {
-    setEditingNote(null);
-    setIsFormOpen(true);
+  const handleSectionChange = (section: string) => {
+    setCurrentSection(section);
+    // Close any open modals when changing sections
+    setShowBookDetails(false);
+    setShowMemberDetails(false);
+    setSelectedBook(null);
+    setSelectedMember(null);
   };
 
-  const handleEditNote = (note: Note) => {
-    setEditingNote(note);
-    setIsFormOpen(true);
+  const handleBookSelect = (book: Book) => {
+    setSelectedBook(book);
+    setShowBookDetails(true);
   };
 
-  const handleSaveNote = (noteData: any) => {
-    if (editingNote) {
-      updateNote(editingNote.id, noteData);
-    } else {
-      createNote(noteData);
-    }
-    setIsFormOpen(false);
-    setEditingNote(null);
+  const handleBookEdit = (book: Book | null) => {
+    // TODO: Implement book editing modal
+    console.log('Edit book:', book);
   };
 
-  const handleCancelForm = () => {
-    setIsFormOpen(false);
-    setEditingNote(null);
+  const handleBookDelete = (book: Book) => {
+    // TODO: Implement book deletion confirmation
+    console.log('Delete book:', book);
   };
 
-  const handleLogout = async () => {
-    try {
-      setIsLoggingOut(true);
-      setShowUserMenu(false);
-      
-      console.log('[App] 开始登出流程');
-      await logout();
-      console.log('[App] 登出成功');
-    } catch (error) {
-      console.error('[App] 登出失败:', error);
-      // 即使登出失败，也要重置状态
-    } finally {
-      setIsLoggingOut(false);
-    }
+  const handleMemberSelect = (member: Member) => {
+    setSelectedMember(member);
+    setShowMemberDetails(true);
   };
 
-  const toggleUserMenu = () => {
-    setShowUserMenu(!showUserMenu);
+  const handleMemberEdit = (member: Member | null) => {
+    // TODO: Implement member editing modal
+    console.log('Edit member:', member);
   };
 
-  // 数据迁移提示
-  if (migrationStatus?.isInProgress) {
-    return (
-      <div className="migration-screen">
-        <div className="migration-container">
-          <div className="migration-content">
-            <StickyNote size={48} className="migration-icon" />
-            <h2>正在迁移您的便签数据</h2>
-            <p>请稍候，我们正在将您的本地便签迁移到个人账户...</p>
-            
-            <div className="migration-progress">
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill"
-                  style={{ 
-                    width: `${(migrationStatus.processedNotes / migrationStatus.totalNotes) * 100}%` 
-                  }}
-                />
-              </div>
-              <span className="progress-text">
-                {migrationStatus.processedNotes} / {migrationStatus.totalNotes} 便签已处理
-              </span>
-            </div>
-            
-            {migrationStatus.errors.length > 0 && (
-              <div className="migration-errors">
-                <h3>迁移错误：</h3>
-                <ul>
-                  {migrationStatus.errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-                <button className="btn btn-outline" onClick={retryMigration}>
-                  重试迁移
-                </button>
-              </div>
-            )}
+  const handleMemberDelete = (member: Member) => {
+    // TODO: Implement member deletion confirmation
+    console.log('Delete member:', member);
+  };
+
+  const renderMainContent = () => {
+    switch (currentSection) {
+      case 'dashboard':
+        return <LibraryDashboard />;
+        
+      case 'catalog':
+      case 'catalog-browse':
+        return (
+          <BookCatalog
+            onBookSelect={handleBookSelect}
+            onBookEdit={handleBookEdit}
+            onBookDelete={handleBookDelete}
+          />
+        );
+        
+      case 'catalog-manage':
+        return (
+          <BookCatalog
+            onBookSelect={handleBookSelect}
+            onBookEdit={handleBookEdit}
+            onBookDelete={handleBookDelete}
+            selectionMode={true}
+          />
+        );
+        
+      case 'members':
+      case 'members-list':
+        return (
+          <MemberManagement
+            onMemberSelect={handleMemberSelect}
+            onMemberEdit={handleMemberEdit}
+            onMemberDelete={handleMemberDelete}
+          />
+        );
+        
+      case 'members-manage':
+        return (
+          <MemberManagement
+            onMemberSelect={handleMemberSelect}
+            onMemberEdit={handleMemberEdit}
+            onMemberDelete={handleMemberDelete}
+          />
+        );
+        
+      case 'checkout':
+        return <CheckoutInterface />;
+        
+      case 'return':
+        return <ReturnInterface />;
+        
+      case 'renewals':
+        return <RenewalInterface />;
+        
+      case 'reports':
+        return (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Reports & Analytics</h3>
+            <p className="text-gray-600">Coming soon...</p>
           </div>
-        </div>
-      </div>
-    );
-  }
+        );
+        
+      case 'settings':
+        return (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">System Settings</h3>
+            <p className="text-gray-600">Coming soon...</p>
+          </div>
+        );
+        
+      default:
+        return <LibraryDashboard />;
+    }
+  };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="header-content">
-          <div className="app-title">
-            <StickyNote size={28} className="app-icon" />
-            <h1>便签管理系统</h1>
-          </div>
-          
-          <div className="header-actions">
-            <button
-              onClick={handleCreateNote}
-              className="btn btn-primary create-btn"
-            >
-              <Plus size={20} />
-              新建便签
-            </button>
-            
-            {/* 用户菜单 */}
-            <div className="user-menu-container">
-              <button 
-                className="user-menu-trigger"
-                onClick={toggleUserMenu}
-                aria-label="用户菜单"
-              >
-                <User size={20} />
-                <span className="user-name">{user?.username}</span>
-              </button>
-              
-              {showUserMenu && (
-                <div className="user-menu">
-                  <div className="user-menu-header">
-                    <div className="user-avatar">
-                      <User size={32} />
-                    </div>
-                    <div className="user-info">
-                      <div className="user-display-name">{user?.username}</div>
-                      <div className="user-email">{user?.email}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="user-menu-divider" />
-                  
-                  <button className="user-menu-item">
-                    <Settings size={16} />
-                    设置
-                  </button>
-                  
-                  <button 
-                    className="user-menu-item user-menu-logout"
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                  >
-                    {isLoggingOut ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        登出中...
-                      </>
-                    ) : (
-                      <>
-                        <LogOut size={16} />
-                        登出
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+    <>
+      <LibraryLayout
+        currentSection={currentSection}
+        onSectionChange={handleSectionChange}
+      >
+        {renderMainContent()}
+      </LibraryLayout>
 
-      <main className="main-content">
-        <div className="content-wrapper">
-          <div className="top-section">
-            <StatsPanel stats={stats} />
-            <SearchBar
-              filter={filter}
-              onFilterChange={setFilter}
-              allTags={allTags}
-            />
-          </div>
-          
-          <div className="notes-section">
-            <NotesGrid
-              notes={notes}
-              onEditNote={handleEditNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
-        </div>
-      </main>
-
-      <NoteForm
-        note={editingNote}
-        isOpen={isFormOpen}
-        onSave={handleSaveNote}
-        onCancel={handleCancelForm}
-      />
-      
-      {/* 点击外部关闭用户菜单 */}
-      {showUserMenu && (
-        <div 
-          className="overlay"
-          onClick={() => setShowUserMenu(false)}
+      {/* Book Details Modal */}
+      {showBookDetails && selectedBook && (
+        <BookDetails
+          book={selectedBook}
+          onClose={() => {
+            setShowBookDetails(false);
+            setSelectedBook(null);
+          }}
+          onEdit={handleBookEdit}
+          onDelete={handleBookDelete}
+          onCheckout={(book) => {
+            console.log('Checkout book:', book);
+            // TODO: Navigate to checkout interface with pre-selected book
+          }}
+          onReserve={(book) => {
+            console.log('Reserve book:', book);
+            // TODO: Implement reservation functionality
+          }}
         />
       )}
-    </div>
+
+      {/* Member Details Modal - TODO: Implement MemberDetails component */}
+      {showMemberDetails && selectedMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                {selectedMember.firstName} {selectedMember.lastName}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowMemberDetails(false);
+                  setSelectedMember(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-gray-600">
+              Member details component coming soon...
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-// 根应用组件
+// Root Application Component
 function App() {
   return (
     <AuthProvider>
