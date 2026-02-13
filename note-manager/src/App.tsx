@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { NotificationProvider, setGlobalNotificationContext, useNotifications, useNotificationActions } from './components/NotificationSystem';
 import { useNotes } from './hooks/useNotes';
 import { useAuth } from './contexts/AuthContext';
 import { NoteForm } from './components/NoteForm';
@@ -32,6 +35,16 @@ const MainApp: React.FC = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // 获取通知功能
+  const { showSuccess, showError, showWarning, showInfo } = useNotificationActions();
+  
+  // 设置全局通知上下文
+  const notificationContext = useNotifications();
+  useEffect(() => {
+    setGlobalNotificationContext(notificationContext);
+  }, [notificationContext]);
 
   // 定期检查令牌状态
   useEffect(() => {
@@ -68,14 +81,23 @@ const MainApp: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleSaveNote = (noteData: any) => {
-    if (editingNote) {
-      updateNote(editingNote.id, noteData);
-    } else {
-      createNote(noteData);
+  const handleSaveNote = async (noteData: any) => {
+    try {
+      if (editingNote) {
+        updateNote(editingNote.id, noteData);
+        showSuccess('便签更新成功', `便签 "${noteData.title}" 已更新`);
+      } else {
+        createNote(noteData);
+        showSuccess('便签创建成功', `便签 "${noteData.title}" 已创建`);
+      }
+      setIsFormOpen(false);
+      setEditingNote(null);
+    } catch (error) {
+      showError(
+        editingNote ? '更新便签失败' : '创建便签失败',
+        error.message || '请稍后重试'
+      );
     }
-    setIsFormOpen(false);
-    setEditingNote(null);
   };
 
   const handleCancelForm = () => {
@@ -219,31 +241,60 @@ const MainApp: React.FC = () => {
       </header>
 
       <main className="main-content">
-        <div className="content-wrapper">
-          <div className="top-section">
-            <StatsPanel stats={stats} />
-            <SearchBar
-              filter={filter}
-              onFilterChange={setFilter}
-              allTags={allTags}
-            />
+        <ErrorBoundary level="section">
+          <div className="content-wrapper">
+            <div className="top-section">
+              <ErrorBoundary level="component">
+                <StatsPanel stats={stats} />
+              </ErrorBoundary>
+              
+              <ErrorBoundary level="component">
+                <SearchBar
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  allTags={allTags}
+                  totalNotes={stats.totalNotes}
+                  filteredCount={notes.length}
+                />
+              </ErrorBoundary>
+            </div>
+            
+            <div className="notes-section">
+              <ErrorBoundary level="section">
+                <NotesGrid
+                  notes={notes}
+                  onEditNote={handleEditNote}
+                  onDeleteNote={handleDeleteNote}
+                  onNoteClick={handleEditNote}
+                  onBatchDelete={handleBatchDelete}
+                  onExport={handleExportNotes}
+                  loading={loading}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  enableSelection={true}
+                  compactMode={viewMode === 'list'}
+                />
+              </ErrorBoundary>
+            </div>
           </div>
-          
-          <div className="notes-section">
-            <NotesGrid
-              notes={notes}
-              onEditNote={handleEditNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
-        </div>
+        </ErrorBoundary>
       </main>
 
-      <NoteForm
-        note={editingNote}
-        isOpen={isFormOpen}
-        onSave={handleSaveNote}
-        onCancel={handleCancelForm}
+      <ErrorBoundary level="component">
+        <NoteForm
+          note={editingNote}
+          isOpen={isFormOpen}
+          onSave={handleSaveNote}
+          onCancel={handleCancelForm}
+          allTags={allTags}
+        />
+      </ErrorBoundary>
+      
+      {/* 网络状态指示器 */}
+      <NetworkStatusIndicator
+        showDetails={false}
+        position="bottom-right"
+        autoHide={true}
       />
       
       {/* 点击外部关闭用户菜单 */}
@@ -260,11 +311,15 @@ const MainApp: React.FC = () => {
 // 根应用组件
 function App() {
   return (
-    <AuthProvider>
-      <AuthGuard>
-        <MainApp />
-      </AuthGuard>
-    </AuthProvider>
+    <ErrorBoundary level="page">
+      <NotificationProvider position="top-right" maxNotifications={5}>
+        <AuthProvider>
+          <AuthGuard>
+            <MainApp />
+          </AuthGuard>
+        </AuthProvider>
+      </NotificationProvider>
+    </ErrorBoundary>
   );
 }
 

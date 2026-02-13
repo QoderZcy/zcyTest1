@@ -1,153 +1,524 @@
-/**
- * 认证工具类单元测试
- */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { JWTUtils, ValidationUtils, EncryptionUtils, ErrorUtils } from '../utils/authUtils';
+import jwt from 'jsonwebtoken';
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { JWTUtils, ValidationUtils, EncryptionUtils } from '../src/utils/authUtils';
+// Mock jsonwebtoken
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    decode: vi.fn(),
+  },
+}));
 
 describe('JWTUtils', () => {
-  const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MjQyNjIyfQ.dummy_signature';
+  const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsInVzZXJuYW1lIjoidGVzdHVzZXIiLCJpYXQiOjE2MDA5NjAwMDAsImV4cCI6MTYwMDk2MzYwMH0.fake-signature';
   
-  describe('isValidTokenFormat', () => {
-    it('should return true for valid JWT format', () => {
-      expect(JWTUtils.isValidTokenFormat(mockToken)).toBe(true);
+  const mockPayload = {
+    sub: 'user-123',
+    email: 'test@example.com',
+    username: 'testuser',
+    iat: 1600960000,
+    exp: 1600963600, // 1小时后过期
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('decode', () => {
+    it('应该成功解码有效的JWT令牌', () => {
+      (jwt.decode as any).mockReturnValue(mockPayload);
+
+      const result = JWTUtils.decode(mockToken);
+
+      expect(jwt.decode).toHaveBeenCalledWith(mockToken);
+      expect(result).toEqual(mockPayload);
     });
 
-    it('should return false for invalid format', () => {
-      expect(JWTUtils.isValidTokenFormat('invalid')).toBe(false);
-      expect(JWTUtils.isValidTokenFormat('')).toBe(false);
-      expect(JWTUtils.isValidTokenFormat('part1.part2')).toBe(false);
+    it('应该在解码失败时返回null', () => {
+      (jwt.decode as any).mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+
+      const result = JWTUtils.decode('invalid-token');
+
+      expect(result).toBeNull();
+    });
+
+    it('应该在令牌为空时返回null', () => {
+      const result = JWTUtils.decode('');
+
+      expect(result).toBeNull();
     });
   });
 
   describe('isTokenExpired', () => {
-    it('should return true for expired token', () => {
-      // 使用过期的时间戳创建token
+    it('应该正确识别已过期的令牌', () => {
       const expiredPayload = {
-        sub: '123',
-        email: 'test@example.com',
-        username: 'testuser',
-        iat: 1516239022,
-        exp: Math.floor(Date.now() / 1000) - 3600 // 1小时前过期
+        ...mockPayload,
+        exp: Math.floor(Date.now() / 1000) - 3600, // 1小时前过期
       };
       
-      // 模拟过期token
-      expect(JWTUtils.isTokenExpired('expired.token.here')).toBe(true);
+      (jwt.decode as any).mockReturnValue(expiredPayload);
+
+      const result = JWTUtils.isTokenExpired(mockToken);
+
+      expect(result).toBe(true);
     });
-    
-    it('should return true for invalid token', () => {
-      expect(JWTUtils.isTokenExpired('invalid')).toBe(true);
+
+    it('应该正确识别未过期的令牌', () => {
+      const validPayload = {
+        ...mockPayload,
+        exp: Math.floor(Date.now() / 1000) + 3600, // 1小时后过期
+      };
+      
+      (jwt.decode as any).mockReturnValue(validPayload);
+
+      const result = JWTUtils.isTokenExpired(mockToken);
+
+      expect(result).toBe(false);
+    });
+
+    it('应该在令牌无效时返回true', () => {
+      (jwt.decode as any).mockReturnValue(null);
+
+      const result = JWTUtils.isTokenExpired('invalid-token');
+
+      expect(result).toBe(true);
+    });
+
+    it('应该在缺少过期时间时返回true', () => {
+      const payloadWithoutExp = {
+        sub: 'user-123',
+        email: 'test@example.com',
+      };
+      
+      (jwt.decode as any).mockReturnValue(payloadWithoutExp);
+
+      const result = JWTUtils.isTokenExpired(mockToken);
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('isTokenExpiringSoon', () => {
+    it('应该正确识别即将过期的令牌', () => {
+      const soonExpiredPayload = {
+        ...mockPayload,
+        exp: Math.floor(Date.now() / 1000) + 120, // 2分钟后过期
+      };
+      
+      (jwt.decode as any).mockReturnValue(soonExpiredPayload);
+
+      const result = JWTUtils.isTokenExpiringSoon(mockToken, 300); // 5分钟阈值
+
+      expect(result).toBe(true);
+    });
+
+    it('应该正确识别不会很快过期的令牌', () => {
+      const validPayload = {
+        ...mockPayload,
+        exp: Math.floor(Date.now() / 1000) + 3600, // 1小时后过期
+      };
+      
+      (jwt.decode as any).mockReturnValue(validPayload);
+
+      const result = JWTUtils.isTokenExpiringSoon(mockToken, 300); // 5分钟阈值
+
+      expect(result).toBe(false);
+    });
+
+    it('应该使用默认阈值(5分钟)', () => {
+      const soonExpiredPayload = {
+        ...mockPayload,
+        exp: Math.floor(Date.now() / 1000) + 120, // 2分钟后过期
+      };
+      
+      (jwt.decode as any).mockReturnValue(soonExpiredPayload);
+
+      const result = JWTUtils.isTokenExpiringSoon(mockToken); // 使用默认阈值
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('extractUserFromToken', () => {
+    it('应该成功从令牌中提取用户信息', () => {
+      (jwt.decode as any).mockReturnValue(mockPayload);
+
+      const result = JWTUtils.extractUserFromToken(mockToken);
+
+      expect(result).toEqual({
+        id: mockPayload.sub,
+        email: mockPayload.email,
+        username: mockPayload.username,
+      });
+    });
+
+    it('应该在令牌无效时返回null', () => {
+      (jwt.decode as any).mockReturnValue(null);
+
+      const result = JWTUtils.extractUserFromToken('invalid-token');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getTokenRemainingTime', () => {
+    it('应该正确计算令牌剩余时间', () => {
+      const futureExp = Math.floor(Date.now() / 1000) + 1800; // 30分钟后过期
+      const futurePayload = {
+        ...mockPayload,
+        exp: futureExp,
+      };
+      
+      (jwt.decode as any).mockReturnValue(futurePayload);
+
+      const result = JWTUtils.getTokenRemainingTime(mockToken);
+
+      expect(result).toBeGreaterThan(1700); // 约30分钟
+      expect(result).toBeLessThan(1800);
+    });
+
+    it('应该在令牌已过期时返回0', () => {
+      const pastExp = Math.floor(Date.now() / 1000) - 1800; // 30分钟前过期
+      const pastPayload = {
+        ...mockPayload,
+        exp: pastExp,
+      };
+      
+      (jwt.decode as any).mockReturnValue(pastPayload);
+
+      const result = JWTUtils.getTokenRemainingTime(mockToken);
+
+      expect(result).toBe(0);
+    });
+
+    it('应该在令牌无效时返回0', () => {
+      (jwt.decode as any).mockReturnValue(null);
+
+      const result = JWTUtils.getTokenRemainingTime('invalid-token');
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('isValidTokenFormat', () => {
+    it('应该验证有效的JWT令牌格式', () => {
+      const validToken = 'header.payload.signature';
+      
+      const result = JWTUtils.isValidTokenFormat(validToken);
+
+      expect(result).toBe(true);
+    });
+
+    it('应该拒绝无效的JWT令牌格式', () => {
+      const invalidFormats = [
+        '',
+        'invalid',
+        'header.payload',
+        'header.payload.signature.extra',
+        null,
+        undefined,
+      ];
+
+      invalidFormats.forEach(format => {
+        const result = JWTUtils.isValidTokenFormat(format as any);
+        expect(result).toBe(false);
+      });
     });
   });
 });
 
 describe('ValidationUtils', () => {
   describe('isValidEmail', () => {
-    it('should validate correct email addresses', () => {
-      expect(ValidationUtils.isValidEmail('test@example.com')).toBe(true);
-      expect(ValidationUtils.isValidEmail('user.name@domain.co.uk')).toBe(true);
-      expect(ValidationUtils.isValidEmail('user+tag@example.org')).toBe(true);
+    it('应该验证有效的邮箱地址', () => {
+      const validEmails = [
+        'test@example.com',
+        'user.name@domain.co.uk',
+        'firstname+lastname@example.org',
+        'email@123.123.123.123', // IP地址形式
+      ];
+
+      validEmails.forEach(email => {
+        expect(ValidationUtils.isValidEmail(email)).toBe(true);
+      });
     });
 
-    it('should reject invalid email addresses', () => {
-      expect(ValidationUtils.isValidEmail('invalid')).toBe(false);
-      expect(ValidationUtils.isValidEmail('test@')).toBe(false);
-      expect(ValidationUtils.isValidEmail('@example.com')).toBe(false);
-      expect(ValidationUtils.isValidEmail('')).toBe(false);
+    it('应该拒绝无效的邮箱地址', () => {
+      const invalidEmails = [
+        '',
+        'invalid',
+        '@example.com',
+        'test@',
+        'test.example.com',
+        'test..test@example.com',
+      ];
+
+      invalidEmails.forEach(email => {
+        expect(ValidationUtils.isValidEmail(email)).toBe(false);
+      });
     });
   });
 
   describe('validatePassword', () => {
-    it('should validate strong passwords', () => {
-      const result = ValidationUtils.validatePassword('Password123!');
+    it('应该验证强密码', () => {
+      const strongPassword = 'StrongPass123!';
+      
+      const result = ValidationUtils.validatePassword(strongPassword);
+
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should reject weak passwords', () => {
-      const result = ValidationUtils.validatePassword('weak');
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-    });
+    it('应该识别弱密码并返回相应错误', () => {
+      const weakPassword = 'weak';
+      
+      const result = ValidationUtils.validatePassword(weakPassword);
 
-    it('should provide specific error messages', () => {
-      const result = ValidationUtils.validatePassword('password');
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('密码长度至少8位');
       expect(result.errors).toContain('密码必须包含大写字母');
       expect(result.errors).toContain('密码必须包含数字');
       expect(result.errors).toContain('密码必须包含特殊字符');
     });
+
+    it('应该验证各种密码规则', () => {
+      const testCases = [
+        {
+          password: 'NoSpecialChar123',
+          expectedErrors: ['密码必须包含特殊字符'],
+        },
+        {
+          password: 'nouppercasechar123!',
+          expectedErrors: ['密码必须包含大写字母'],
+        },
+        {
+          password: 'NOLOWERCASECHAR123!',
+          expectedErrors: ['密码必须包含小写字母'],
+        },
+        {
+          password: 'NoNumbers!',
+          expectedErrors: ['密码必须包含数字'],
+        },
+      ];
+
+      testCases.forEach(({ password, expectedErrors }) => {
+        const result = ValidationUtils.validatePassword(password);
+        expect(result.isValid).toBe(false);
+        expectedErrors.forEach(error => {
+          expect(result.errors).toContain(error);
+        });
+      });
+    });
   });
 
   describe('isValidUsername', () => {
-    it('should validate correct usernames', () => {
-      expect(ValidationUtils.isValidUsername('testuser')).toBe(true);
-      expect(ValidationUtils.isValidUsername('test_user')).toBe(true);
-      expect(ValidationUtils.isValidUsername('用户名')).toBe(true);
-      expect(ValidationUtils.isValidUsername('user123')).toBe(true);
+    it('应该验证有效的用户名', () => {
+      const validUsernames = [
+        'user123',
+        'test_user',
+        '测试用户',
+        'User_Name_123',
+        '用户名123',
+      ];
+
+      validUsernames.forEach(username => {
+        expect(ValidationUtils.isValidUsername(username)).toBe(true);
+      });
     });
 
-    it('should reject invalid usernames', () => {
-      expect(ValidationUtils.isValidUsername('ab')).toBe(false); // 太短
-      expect(ValidationUtils.isValidUsername('a'.repeat(21))).toBe(false); // 太长
-      expect(ValidationUtils.isValidUsername('user@name')).toBe(false); // 包含特殊字符
-      expect(ValidationUtils.isValidUsername('')).toBe(false);
+    it('应该拒绝无效的用户名', () => {
+      const invalidUsernames = [
+        '',
+        'ab', // 太短
+        'a'.repeat(21), // 太长
+        'user@name', // 包含特殊字符
+        'user name', // 包含空格
+        'user-name', // 包含连字符
+      ];
+
+      invalidUsernames.forEach(username => {
+        expect(ValidationUtils.isValidUsername(username)).toBe(false);
+      });
     });
   });
 
   describe('isPasswordMatch', () => {
-    it('should return true for matching passwords', () => {
-      expect(ValidationUtils.isPasswordMatch('password', 'password')).toBe(true);
+    it('应该验证密码匹配', () => {
+      const password = 'testpassword';
+      const confirmPassword = 'testpassword';
+
+      const result = ValidationUtils.isPasswordMatch(password, confirmPassword);
+
+      expect(result).toBe(true);
     });
 
-    it('should return false for non-matching passwords', () => {
-      expect(ValidationUtils.isPasswordMatch('password1', 'password2')).toBe(false);
+    it('应该识别密码不匹配', () => {
+      const password = 'testpassword';
+      const confirmPassword = 'differentpassword';
+
+      const result = ValidationUtils.isPasswordMatch(password, confirmPassword);
+
+      expect(result).toBe(false);
     });
   });
 });
 
 describe('EncryptionUtils', () => {
   describe('encrypt and decrypt', () => {
-    it('should encrypt and decrypt text correctly', () => {
+    it('应该正确加密和解密文本', () => {
       const originalText = 'Hello, World!';
-      const encrypted = EncryptionUtils.encrypt(originalText);
-      const decrypted = EncryptionUtils.decrypt(encrypted);
       
-      expect(decrypted).toBe(originalText);
+      const encrypted = EncryptionUtils.encrypt(originalText);
       expect(encrypted).not.toBe(originalText);
-    });
-
-    it('should handle empty strings', () => {
-      const encrypted = EncryptionUtils.encrypt('');
-      const decrypted = EncryptionUtils.decrypt(encrypted);
       
-      expect(decrypted).toBe('');
-    });
-
-    it('should handle special characters', () => {
-      const originalText = '特殊字符 @#$%^&*()';
-      const encrypted = EncryptionUtils.encrypt(originalText);
       const decrypted = EncryptionUtils.decrypt(encrypted);
-      
       expect(decrypted).toBe(originalText);
+    });
+
+    it('应该处理包含特殊字符的文本', () => {
+      const specialText = '特殊字符测试!@#$%^&*()';
+      
+      const encrypted = EncryptionUtils.encrypt(specialText);
+      const decrypted = EncryptionUtils.decrypt(encrypted);
+      
+      expect(decrypted).toBe(specialText);
+    });
+
+    it('应该处理空字符串', () => {
+      const emptyText = '';
+      
+      const encrypted = EncryptionUtils.encrypt(emptyText);
+      const decrypted = EncryptionUtils.decrypt(encrypted);
+      
+      expect(decrypted).toBe(emptyText);
     });
   });
 
   describe('generateRandomString', () => {
-    it('should generate string of correct length', () => {
-      const randomString = EncryptionUtils.generateRandomString(10);
-      expect(randomString).toHaveLength(10);
+    it('应该生成指定长度的随机字符串', () => {
+      const length = 16;
+      const randomString = EncryptionUtils.generateRandomString(length);
+      
+      expect(randomString).toHaveLength(length);
+      expect(typeof randomString).toBe('string');
     });
 
-    it('should generate different strings on multiple calls', () => {
-      const string1 = EncryptionUtils.generateRandomString(16);
-      const string2 = EncryptionUtils.generateRandomString(16);
+    it('应该生成不同的随机字符串', () => {
+      const string1 = EncryptionUtils.generateRandomString(10);
+      const string2 = EncryptionUtils.generateRandomString(10);
       
       expect(string1).not.toBe(string2);
     });
 
-    it('should generate string with default length', () => {
+    it('应该使用默认长度', () => {
       const randomString = EncryptionUtils.generateRandomString();
-      expect(randomString).toHaveLength(16);
+      
+      expect(randomString).toHaveLength(16); // 默认长度
+    });
+
+    it('应该只包含允许的字符', () => {
+      const randomString = EncryptionUtils.generateRandomString(100);
+      const allowedChars = /^[A-Za-z0-9]+$/;
+      
+      expect(allowedChars.test(randomString)).toBe(true);
+    });
+  });
+});
+
+describe('ErrorUtils', () => {
+  describe('getErrorMessage', () => {
+    it('应该返回结构化错误的消息', () => {
+      const structuredError = {
+        type: 'VALIDATION_ERROR',
+        message: '输入验证失败',
+      };
+
+      const result = ErrorUtils.getErrorMessage(structuredError);
+
+      expect(result).toBe('输入验证失败');
+    });
+
+    it('应该返回响应数据中的错误消息', () => {
+      const responseError = {
+        response: {
+          data: {
+            message: '服务器错误消息',
+          },
+        },
+      };
+
+      const result = ErrorUtils.getErrorMessage(responseError);
+
+      expect(result).toBe('服务器错误消息');
+    });
+
+    it('应该返回标准错误的消息', () => {
+      const standardError = new Error('标准错误消息');
+
+      const result = ErrorUtils.getErrorMessage(standardError);
+
+      expect(result).toBe('标准错误消息');
+    });
+
+    it('应该返回默认错误消息', () => {
+      const unknownError = { someProperty: 'value' };
+
+      const result = ErrorUtils.getErrorMessage(unknownError);
+
+      expect(result).toBe('发生未知错误，请稍后重试');
+    });
+  });
+
+  describe('isNetworkError', () => {
+    it('应该识别网络错误', () => {
+      const networkErrors = [
+        { code: 'ECONNABORTED' },
+        { code: 'ERR_NETWORK' },
+        { message: 'Network request failed' }, // 没有response
+      ];
+
+      networkErrors.forEach(error => {
+        expect(ErrorUtils.isNetworkError(error)).toBe(true);
+      });
+    });
+
+    it('应该识别非网络错误', () => {
+      const nonNetworkErrors = [
+        { response: { status: 400 } },
+        { response: { status: 500 } },
+        { code: 'OTHER_ERROR', response: {} },
+      ];
+
+      nonNetworkErrors.forEach(error => {
+        expect(ErrorUtils.isNetworkError(error)).toBe(false);
+      });
+    });
+  });
+
+  describe('isAuthError', () => {
+    it('应该识别认证错误', () => {
+      const authErrors = [
+        { response: { status: 401 } },
+        { type: 'TOKEN_INVALID' },
+      ];
+
+      authErrors.forEach(error => {
+        expect(ErrorUtils.isAuthError(error)).toBe(true);
+      });
+    });
+
+    it('应该识别非认证错误', () => {
+      const nonAuthErrors = [
+        { response: { status: 400 } },
+        { response: { status: 500 } },
+        { type: 'NETWORK_ERROR' },
+        { message: 'Some other error' },
+      ];
+
+      nonAuthErrors.forEach(error => {
+        expect(ErrorUtils.isAuthError(error)).toBe(false);
+      });
     });
   });
 });
