@@ -1,0 +1,307 @@
+/* 博客筛选组件样式 */
+
+.blog-filter {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filter-section {
+  margin-bottom: 2rem;
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 排序选项 */
+.sort-options {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sort-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+.sort-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.sort-select {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: white;
+  color: #2d3748;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #3182ce;
+}
+
+/* 筛选选项 */
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-option {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.filter-option:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.filter-option.active {
+  background: #3182ce;
+  border-color: #3182ce;
+  color: white;
+}
+
+/* 标签筛选 */
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 1rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.filter-tag:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.filter-tag.active {
+  background: #e6fffa;
+  border-color: #38b2ac;
+  color: #234e52;
+}
+
+.remove-icon {
+  margin-left: 0.25rem;
+  opacity: 0.7;
+}
+
+.filter-tag.active .remove-icon {
+  opacity: 1;
+}
+
+.more-tags-indicator {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  background: #f7fafc;
+  color: #718096;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 2px solid #e2e8f0;
+}
+
+/* 自定义滚动条 */
+.filter-tags::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-tags::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.filter-tags::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.filter-tags::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .blog-filter {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .sort-options {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sort-group {
+    min-width: auto;
+  }
+
+  .filter-options {
+    justify-content: center;
+  }
+
+  .filter-tags {
+    justify-content: center;
+    max-height: 150px;
+  }
+
+  .filter-option,
+  .filter-tag {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .blog-filter {
+    padding: 0.75rem;
+  }
+
+  .filter-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-title {
+    font-size: 0.875rem;
+    text-align: center;
+  }
+
+  .sort-options {
+    gap: 0.75rem;
+  }
+
+  .filter-options,
+  .filter-tags {
+    gap: 0.375rem;
+  }
+
+  .filter-option {
+    padding: 0.375rem 0.75rem;
+    flex: 1;
+    text-align: center;
+    min-width: calc(50% - 0.1875rem);
+  }
+
+  .filter-tag {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .more-tags-indicator {
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .blog-filter {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+
+  .filter-title {
+    color: #f7fafc;
+    border-bottom-color: #4a5568;
+  }
+
+  .sort-label {
+    color: #cbd5e0;
+  }
+
+  .sort-select {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .sort-select:focus {
+    border-color: #3182ce;
+  }
+
+  .filter-option {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .filter-option:hover {
+    background: #2d3748;
+    border-color: #718096;
+  }
+
+  .filter-option.active {
+    background: #3182ce;
+    border-color: #3182ce;
+    color: white;
+  }
+
+  .filter-tag {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .filter-tag:hover {
+    background: #2d3748;
+    border-color: #718096;
+  }
+
+  .filter-tag.active {
+    background: #234e52;
+    border-color: #38b2ac;
+    color: #e6fffa;
+  }
+
+  .more-tags-indicator {
+    background: #1a202c;
+    border-color: #4a5568;
+    color: #a0aec0;
+  }
+}
