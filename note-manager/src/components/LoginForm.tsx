@@ -1,4 +1,4 @@
-importReact, { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,13 +31,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSwitchToRegister,
   onForgotPassword,
 }) => {
-  const { login, loading, error, clearError, isAuthenticated } =useAuth();
+  const { login, loading, error, clearError, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lastAttemptTime, setLastAttemptTime] = useState<number | null>(null);
 
- const {
+  const {
     register,
     handleSubmit,
     formState: { errors, isValid },
@@ -50,7 +50,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       email: '',
       password: '',
       rememberMe: false,
-},
+    },
   });
 
   // 监听认证状态变化
@@ -61,7 +61,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       setIsSubmitting(false);
       setLoginAttempts(0);
       setLastAttemptTime(null);
-   }
+    }
   }, [isAuthenticated, reset]);
 
   // 监听表单变化以清除错误
@@ -80,7 +80,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // 防止过频尝试
       const now = Date.now();
       if (lastAttemptTime && (now - lastAttemptTime) < 3000) {
-console.warn('[LoginForm] 登录尝试过于频繁');
+      console.warn('[LoginForm] 登录尝试过于频繁');
         return;
       }
       
@@ -104,7 +104,7 @@ console.warn('[LoginForm] 登录尝试过于频繁');
         rememberMe: credentials.rememberMe 
       });
       
-      awaitlogin(credentials);
+      await login(credentials);
       
       // 登录成功后重置状态
       setLoginAttempts(0);
@@ -112,7 +112,7 @@ console.warn('[LoginForm] 登录尝试过于频繁');
       console.log('[LoginForm] 登录成功');
     } catch (error) {
       console.error('[LoginForm] 登录失败:', error);
-      setLoginAttempts(prev => prev +1);
+      setLoginAttempts(prev => prev + 1);
       // 错误已在AuthContext中处理
     } finally {
       setIsSubmitting(false);
@@ -141,39 +141,39 @@ console.warn('[LoginForm] 登录尝试过于频繁');
     clearError();
     reset();
     onSwitchToRegister();
- };
+  };
 
   const isFormLoading = loading || isSubmitting;
 
   return (
     <div className="login-form">
-<div className="form-header">
-<h2 className="form-title">
-<LogIn size={24} />
+      <div className="form-header">
+        <h2 className="form-title">
+          <LogIn size={24} />
           登录账户
         </h2>
         <p className="form-subtitle">
-欢迎回来！请登录您的账户以继续使用便签管理系统
+          欢迎回来！请登录您的账户以继续使用便签管理系统
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="auth-form"noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
         {/* 邮箱输入 */}
         <div className="form-group">
-<labelhtmlFor="email"className="form-label">
-邮箱地址
+          <label htmlFor="email" className="form-label">
+            邮箱地址
           </label>
           <div className="input-wrapper">
-<divclassName="input-icon">
-<Mail size={20} />
+            <div className="input-icon">
+              <Mail size={20} />
             </div>
             <input
               {...register('email')}
               type="email"
-id="email"
-className={`form-input ${errors.email ? 'form-input-error' : ''}`}
+              id="email"
+              className={`form-input ${errors.email ? 'form-input-error' : ''}`}
               placeholder="请输入您的邮箱地址"
-autoComplete="email"
+              autoComplete="email"
 disabled={isFormLoading}
             />
           </div>
@@ -184,52 +184,52 @@ disabled={isFormLoading}
 
         {/* 密码输入 */}
         <div className="form-group">
-          <label htmlFor="password"className="form-label">
-           密码
+          <label htmlFor="password" className="form-label">
+            密码
           </label>
           <div className="input-wrapper">
             <div className="input-icon">
-              <Locksize={20} />
+              <Lock size={20} />
             </div>
             <input
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
               id="password"
-className={`form-input ${errors.password? 'form-input-error' : ''}`}
+              className={`form-input ${errors.password ? 'form-input-error' : ''}`}
               placeholder="请输入您的密码"
-autoComplete="current-password"
+              autoComplete="current-password"
 disabled={isFormLoading}
             />
-           <button
+            <button
               type="button"
-className="password-toggle"
-onClick={togglePasswordVisibility}
+              className="password-toggle"
+              onClick={togglePasswordVisibility}
               disabled={isFormLoading}
               aria-label={showPassword ? '隐藏密码' : '显示密码'}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          {errors.password&& (
+          {errors.password && (
             <span className="form-error">{errors.password.message}</span>
           )}
         </div>
 
         {/* 记住我选项 */}
         <div className="form-group form-group-horizontal">
-<labelclassName="checkbox-label">
-<input{...register('rememberMe')}
+          <label className="checkbox-label">
+            <input              {...register('rememberMe')}
               type="checkbox"
-className="checkbox-input"
+              className="checkbox-input"
 disabled={isFormLoading}
             />
-           <spanclassName="checkbox-text">记住我</span>
+            <span className="checkbox-text">记住我</span>
           </label>
 
           <button
             type="button"
            className="link-button"
-onClick={handleForgotPassword}
+            onClick={handleForgotPassword}
             disabled={isFormLoading}
           >
             忘记密码？
@@ -256,8 +256,8 @@ onClick={handleForgotPassword}
         >
          {isFormLoading ? (
             <>
-              <Loader2 size={20} className="animate-spin"/>
-正在登录...
+              <Loader2 size={20} className="animate-spin" />
+              正在登录...
             </>
           ) : (
             <>
@@ -269,7 +269,7 @@ onClick={handleForgotPassword}
 
         {/* 切换到注册 */}
         <div className="form-footer">
-<span>还没有账户？</span>
+          <span>还没有账户？</span>
           <button
             type="button"
             className="link-button"
