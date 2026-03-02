@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // Mock environment variables
 process.env.VITE_API_BASE_URL = 'http://localhost:3001/api';

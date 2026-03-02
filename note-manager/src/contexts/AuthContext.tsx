@@ -337,25 +337,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const register = async (credentials: RegisterCredentials): Promise<void> => {
     try {
-      dispatch({ type: 'AUTH_START' });
+      dispatch({ type: 'AUTH_LOGIN_START' });
 
       const response = await AuthService.register(credentials);
-      const { user, token, refreshToken } = response;
+      const { user, token, refreshToken, expiresIn } = response;
 
+      // 计算令牌过期时间
+      const expiryTime = Date.now() + (expiresIn * 1000);
+      
       // 存储令牌
       StorageManager.setToken(token, false); // 注册后默认不记住
       StorageManager.setRefreshToken(refreshToken);
       StorageManager.setRememberMe(false);
 
       dispatch({
-        type: 'AUTH_SUCCESS',
-        payload: { user, token, refreshToken }
+        type: 'AUTH_LOGIN_SUCCESS',
+        payload: { 
+          user, 
+          token, 
+          refreshToken, 
+          expiryTime,
+          rememberMe: false
+        }
       });
+      
+      console.log('[AuthContext] 注册成功:', { userId: user.id, email: user.email });
     } catch (error) {
-      const errorMessage = ErrorUtils.getErrorMessage(error);
+      console.error('[AuthContext] 注册失败:', error);
+      const authError: AuthError = {
+        type: error.type || AuthErrorType.SERVER_ERROR,
+        message: ErrorUtils.getErrorMessage(error),
+        details: error.details
+      };
+      
       dispatch({
-        type: 'AUTH_FAILURE',
-        payload: { error: errorMessage }
+        type: 'AUTH_LOGIN_FAILURE',
+        payload: { error: authError }
       });
       throw error;
     }
