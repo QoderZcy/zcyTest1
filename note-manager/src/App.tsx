@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, StickyNote, User, LogOut, Settings, Loader2 } from 'lucide-react';
+import { Plus, StickyNote, User, LogOut, Settings, Loader2, Cloud } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
+import { WeatherProvider } from './contexts/WeatherContext';
 import { useNotes } from './hooks/useNotes';
 import { useAuth } from './contexts/AuthContext';
 import { NoteForm } from './components/NoteForm';
 import { SearchBar } from './components/SearchBar';
 import { NotesGrid } from './components/NotesGrid';
 import { StatsPanel } from './components/StatsPanel';
+import { WeatherDashboard } from './components/weather/WeatherDashboard';
 import type { Note } from './types/note';
 import './App.css';
+import './styles/weather.css';
 
 // 主应用组件（已认证用户）
 const MainApp: React.FC = () => {
@@ -32,6 +35,7 @@ const MainApp: React.FC = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [currentView, setCurrentView] = useState<'notes' | 'weather'>('notes');
 
   // 定期检查令牌状态
   useEffect(() => {
@@ -164,6 +168,14 @@ const MainApp: React.FC = () => {
               新建便签
             </button>
             
+            <button
+              onClick={() => setCurrentView(currentView === 'notes' ? 'weather' : 'notes')}
+              className={`btn ${currentView === 'weather' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              <Cloud size={20} />
+              {currentView === 'weather' ? '返回便签' : '天气'}
+            </button>
+            
             {/* 用户菜单 */}
             <div className="user-menu-container">
               <button 
@@ -220,22 +232,28 @@ const MainApp: React.FC = () => {
 
       <main className="main-content">
         <div className="content-wrapper">
-          <div className="top-section">
-            <StatsPanel stats={stats} />
-            <SearchBar
-              filter={filter}
-              onFilterChange={setFilter}
-              allTags={allTags}
-            />
-          </div>
-          
-          <div className="notes-section">
-            <NotesGrid
-              notes={notes}
-              onEditNote={handleEditNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
+          {currentView === 'notes' ? (
+            <>
+              <div className="top-section">
+                <StatsPanel stats={stats} />
+                <SearchBar
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  allTags={allTags}
+                />
+              </div>
+              
+              <div className="notes-section">
+                <NotesGrid
+                  notes={notes}
+                  onEditNote={handleEditNote}
+                  onDeleteNote={deleteNote}
+                />
+              </div>
+            </>
+          ) : (
+            <WeatherDashboard />
+          )}
         </div>
       </main>
 
@@ -261,9 +279,11 @@ const MainApp: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AuthGuard>
-        <MainApp />
-      </AuthGuard>
+      <WeatherProvider>
+        <AuthGuard>
+          <MainApp />
+        </AuthGuard>
+      </WeatherProvider>
     </AuthProvider>
   );
 }
