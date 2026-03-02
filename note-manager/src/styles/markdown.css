@@ -1,0 +1,431 @@
+/* ===== Markdown 渲染器样式 ===== */
+.markdown-renderer {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.8;
+  color: #374151;
+  max-width: none;
+}
+
+.markdown-renderer > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-renderer > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== 标题样式 ===== */
+.markdown-renderer h1,
+.markdown-renderer h2,
+.markdown-renderer h3,
+.markdown-renderer h4,
+.markdown-renderer h5,
+.markdown-renderer h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1f2937;
+  margin: 2rem 0 1rem 0;
+}
+
+.markdown-renderer h1 {
+  font-size: 2.25rem;
+  border-bottom: 3px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.markdown-renderer h2 {
+  font-size: 1.875rem;
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 0.375rem;
+}
+
+.markdown-renderer h3 {
+  font-size: 1.5rem;
+}
+
+.markdown-renderer h4 {
+  font-size: 1.25rem;
+}
+
+.markdown-renderer h5 {
+  font-size: 1.125rem;
+}
+
+.markdown-renderer h6 {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+/* ===== 段落和文本样式 ===== */
+.markdown-renderer p {
+  margin: 1rem 0;
+  text-align: justify;
+}
+
+.markdown-renderer strong {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.markdown-renderer em {
+  font-style: italic;
+  color: #4b5563;
+}
+
+.markdown-renderer del {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.markdown-renderer mark {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+/* ===== 链接样式 ===== */
+.markdown-renderer a {
+  color: #2563eb;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.markdown-renderer a:hover {
+  color: #1d4ed8;
+  border-bottom-color: #1d4ed8;
+}
+
+.markdown-renderer a:visited {
+  color: #7c3aed;
+}
+
+/* ===== 列表样式 ===== */
+.markdown-renderer ul,
+.markdown-renderer ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.markdown-renderer ul {
+  list-style-type: disc;
+}
+
+.markdown-renderer ol {
+  list-style-type: decimal;
+}
+
+.markdown-renderer li {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.markdown-renderer li > p {
+  margin: 0.25rem 0;
+}
+
+.markdown-renderer ul ul,
+.markdown-renderer ol ol,
+.markdown-renderer ul ol,
+.markdown-renderer ol ul {
+  margin: 0.25rem 0;
+}
+
+.markdown-renderer ul ul {
+  list-style-type: circle;
+}
+
+.markdown-renderer ul ul ul {
+  list-style-type: square;
+}
+
+/* ===== 代码样式 ===== */
+.markdown-renderer code {
+  background-color: #f3f4f6;
+  color: #dc2626;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+.markdown-renderer pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  position: relative;
+}
+
+.markdown-renderer pre code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.markdown-renderer pre[class*="language-"] {
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-renderer pre[class*="language-"]::before {
+  content: attr(class);
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ===== 引用块样式 ===== */
+.markdown-renderer blockquote,
+.markdown-blockquote {
+  border-left: 4px solid #2563eb;
+  background-color: #f8fafc;
+  margin: 1.5rem 0;
+  padding: 1rem 1.5rem;
+  color: #4b5563;
+  position: relative;
+}
+
+.markdown-renderer blockquote::before,
+.markdown-blockquote::before {
+  content: '"';
+  font-size: 4rem;
+  color: #e5e7eb;
+  position: absolute;
+  top: -0.5rem;
+  left: 1rem;
+  line-height: 1;
+  font-family: Georgia, serif;
+}
+
+.markdown-renderer blockquote p,
+.markdown-blockquote p {
+  margin: 0.5rem 0;
+  font-style: italic;
+}
+
+.markdown-renderer blockquote cite {
+  display: block;
+  text-align: right;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.markdown-renderer blockquote cite::before {
+  content: '— ';
+}
+
+/* ===== 表格样式 ===== */
+.markdown-renderer .table-wrapper {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.markdown-renderer table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  font-size: 0.875rem;
+}
+
+.markdown-renderer th,
+.markdown-renderer td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.markdown-renderer th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.markdown-renderer tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.markdown-renderer tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ===== 图片样式 ===== */
+.markdown-renderer img,
+.markdown-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.5rem auto;
+  display: block;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-renderer figure {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.markdown-renderer figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* ===== 分割线样式 ===== */
+.markdown-renderer hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+  margin: 3rem 0;
+}
+
+/* ===== 任务列表样式 ===== */
+.markdown-renderer input[type="checkbox"] {
+  margin-right: 0.5rem;
+  transform: scale(1.2);
+}
+
+.markdown-renderer .task-list-item {
+  list-style: none;
+  margin-left: -2rem;
+  padding-left: 2rem;
+}
+
+/* ===== 定义列表样式 ===== */
+.markdown-renderer dl {
+  margin: 1rem 0;
+}
+
+.markdown-renderer dt {
+  font-weight: 700;
+  color: #1f2937;
+  margin-top: 1rem;
+}
+
+.markdown-renderer dd {
+  margin: 0.5rem 0 1rem 2rem;
+  color: #4b5563;
+}
+
+/* ===== 键盘按键样式 ===== */
+.markdown-renderer kbd {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  color: #374151;
+  display: inline-block;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25rem 0.375rem;
+  white-space: nowrap;
+}
+
+/* ===== 脚注样式 ===== */
+.markdown-renderer .footnote {
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+}
+
+.markdown-renderer .footnote-ref {
+  font-size: 0.75rem;
+  vertical-align: super;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.markdown-renderer .footnote-ref:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* ===== 警告框样式 ===== */
+.markdown-renderer .alert {
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+}
+
+.markdown-renderer .alert-info {
+  background-color: #eff6ff;
+  border-left-color: #2563eb;
+  color: #1e40af;
+}
+
+.markdown-renderer .alert-warning {
+  background-color: #fffbeb;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.markdown-renderer .alert-success {
+  background-color: #ecfdf5;
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.markdown-renderer .alert-error {
+  background-color: #fef2f2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+  .markdown-renderer {
+    font-size: 0.875rem;
+  }
+  
+  .markdown-renderer h1 {
+    font-size: 1.875rem;
+  }
+  
+  .markdown-renderer h2 {
+    font-size: 1.5rem;
+  }
+  
+  .markdown-renderer h3 {
+    font-size: 1.25rem;
+  }
+  
+  .markdown-renderer pre {
+    padding: 1rem;
+    font-size: 0.75rem;
+  }
+  
+  .markdown-renderer blockquote,
+  .markdown-blockquote {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+  }
+  
+  .markdown-renderer .table-wrapper {
+    font-size: 0.75rem;
+  }
+  
+  .markdown-renderer th,
+  .markdown-renderer td {
+    padding: 0.5rem 0.75rem;
+  }
+}

@@ -1,0 +1,449 @@
+/* ===== 博客编辑器样式 ===== */
+.blog-post-editor {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+
+.blog-editor-loading,
+.blog-editor-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #6b7280;
+  font-size: 1.125rem;
+}
+
+.blog-editor-error {
+  color: #dc2626;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ===== 编辑器头部 ===== */
+.blog-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  z-index: 10;
+}
+
+.blog-editor-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.blog-editor-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.blog-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.blog-editor-tabs {
+  display: flex;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.blog-editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #ffffff;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.blog-editor-tab:hover {
+  background-color: #f9fafb;
+}
+
+.blog-editor-tab.active {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.blog-editor-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.blog-editor-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.blog-editor-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.blog-editor-btn.active {
+  background-color: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.blog-editor-btn-primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.blog-editor-btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.blog-editor-btn-success {
+  background-color: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.blog-editor-btn-success:hover:not(:disabled) {
+  background-color: #047857;
+  border-color: #047857;
+}
+
+/* ===== 编辑器主体 ===== */
+.blog-editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.blog-editor-sidebar {
+  width: 300px;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.blog-editor-settings {
+  padding: 1.5rem;
+}
+
+.blog-editor-settings h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1.5rem 0;
+}
+
+.blog-editor-field {
+  margin-bottom: 1.5rem;
+}
+
+.blog-editor-field label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.blog-editor-input,
+.blog-editor-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background-color: #ffffff;
+  transition: border-color 0.2s;
+}
+
+.blog-editor-input:focus,
+.blog-editor-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.blog-editor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.blog-editor-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #eff6ff;
+  color: #2563eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.blog-editor-tag-remove {
+  background-color: transparent;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  transition: background-color 0.2s;
+}
+
+.blog-editor-tag-remove:hover {
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.blog-editor-tag-input {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.blog-editor-tag-input input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.blog-editor-tag-add {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.blog-editor-tag-add:hover {
+  background-color: #1d4ed8;
+}
+
+.blog-editor-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+/* ===== 编辑器主区域 ===== */
+.blog-editor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.blog-editor-title-input {
+  padding: 1.5rem 2rem 0 2rem;
+}
+
+.blog-editor-title-field {
+  width: 100%;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  padding: 0.75rem 0;
+  resize: none;
+}
+
+.blog-editor-title-field::placeholder {
+  color: #9ca3af;
+}
+
+.blog-editor-content {
+  flex: 1;
+  padding: 0 2rem 2rem 2rem;
+  overflow: hidden;
+}
+
+.blog-editor-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'Monaco', 'Menlo', 'Cascadia Code', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.blog-editor-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.blog-editor-preview {
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.preview-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.2;
+}
+
+.preview-content {
+  line-height: 1.8;
+  color: #374151;
+}
+
+/* ===== 编辑器状态 ===== */
+.blog-editor-status {
+  position: fixed;
+  bottom: 1rem;
+  right: 2rem;
+  background-color: #fbbf24;
+  color: #92400e;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.unsaved-indicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 1024px) {
+  .blog-editor-sidebar {
+    width: 250px;
+  }
+  
+  .blog-editor-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .blog-editor-content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+  }
+  
+  .blog-editor-title-input {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .blog-editor-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+  }
+  
+  .blog-editor-nav {
+    justify-content: space-between;
+  }
+  
+  .blog-editor-actions {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .blog-editor-tabs {
+    order: -1;
+    justify-content: center;
+  }
+  
+  .blog-editor-body {
+    flex-direction: column;
+  }
+  
+  .blog-editor-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    order: 1;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .blog-editor-main {
+    order: 2;
+  }
+  
+  .blog-editor-title-field {
+    font-size: 1.5rem;
+  }
+  
+  .blog-editor-content {
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .blog-editor-title-input {
+    padding: 1rem 1rem 0 1rem;
+  }
+  
+  .blog-editor-status {
+    right: 1rem;
+    bottom: 0.5rem;
+  }
+}

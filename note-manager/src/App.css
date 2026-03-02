@@ -55,6 +55,46 @@ body {
   color: #333;
 }
 
+/* 主导航样式 */
+.main-navigation {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(248, 249, 250, 0.8);
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: #374151;
+  transform: translateY(-1px);
+}
+
+.nav-link.active {
+  background: #667eea;
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.nav-link.active:hover {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
 /* 按钮样式 */
 .btn {
   padding: 0.5rem 1rem;
